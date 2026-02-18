@@ -1,0 +1,31 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "blades-and-steeds",
+  "compatibility_date": "2026-02-17",
+  "assets": {
+    "not_found_handling": "single-page-application"
+  },
+  "main": "./worker/index.ts",
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "GAME_ROOM",
+        "class_name": "GameRoom"
+      },
+      {
+        "name": "ROOM_REGISTRY",
+        "class_name": "RoomRegistry"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["GameRoom"]
+    },
+    {
+      "tag": "v2",
+      "new_sqlite_classes": ["RoomRegistry"]
+    }
+  ]
+}

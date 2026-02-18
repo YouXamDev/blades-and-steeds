@@ -572,29 +572,9 @@ const { t } = useTranslation();
 #### 主题系统 (`contexts/ThemeContext.tsx`)
 
 **主题模式**:
-- 🌞 Light（亮色）
-- 🌙 Dark（暗色）
 - 💻 System（跟随系统）
 
-**实现**:
-```typescript
-export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>('system');
-  
-  useEffect(() => {
-    const root = window.document.documentElement;
-    const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches 
-      ? 'dark' 
-      : 'light';
-    const effectiveTheme = theme === 'system' ? systemTheme : theme;
-    
-    root.classList.remove('light', 'dark');
-    root.classList.add(effectiveTheme);
-  }, [theme]);
-  
-  return <ThemeContext.Provider value={{ theme, setTheme }}>...</ThemeContext.Provider>;
-}
-```
+当前只有跟随系统一种设置方式。
 
 ---
 

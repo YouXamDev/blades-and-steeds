@@ -5,179 +5,114 @@ import type { ActionLog as ActionLogType, Player } from '../types/game';
 interface ActionLogProps {
   logs: ActionLogType[];
   currentPlayerId: string;
-  players: Map<string, Player>; // Add players map to resolve city owner names
+  players: Map<string, Player>; 
 }
 
 export function ActionLog({ logs, currentPlayerId, players }: ActionLogProps) {
   const { t } = useTranslation();
 
-  // Sort logs by timestamp (newest first)
   const sortedLogs = [...logs].sort((a, b) => b.timestamp - a.timestamp);
 
   const getActionIcon = (type: string) => {
     switch (type) {
-      case 'move':
-        return '🚶';
-      case 'purchase':
-        return '🛒';
-      case 'rob':
-        return '🤝';
-      case 'attack_knife':
-        return '🗡️';
-      case 'attack_horse':
-        return '🐴';
-      case 'shoot_arrow':
-        return '🏹';
-      case 'launch_rocket':
-        return '🚀';
-      case 'place_bomb':
-        return '💣';
-      case 'detonate_bomb':
-        return '💥';
-      case 'punch':
-        return '👊';
-      case 'kick':
-        return '🦵';
-      case 'teleport':
-        return '🛸';
-      case 'hug':
-        return '🤗';
-      case 'use_potion':
-        return '🧪';
-      default:
-        return '⚡';
+      case 'move': return '🚶';
+      case 'purchase': return '🛒';
+      case 'rob': return '🤝';
+      case 'attack_knife': return '🗡️';
+      case 'attack_horse': return '🐴';
+      case 'shoot_arrow': return '🏹';
+      case 'launch_rocket': return '🚀';
+      case 'place_bomb': return '💣';
+      case 'detonate_bomb': return '💥';
+      case 'punch': return '👊';
+      case 'kick': return '🦵';
+      case 'teleport': return '🛸';
+      case 'hug': return '🤗';
+      case 'use_potion': return '🧪';
+      default: return '⚡';
     }
   };
 
+  // 彻底重写格式化函数，直接组装包含数值信息的详细中文战报
   const formatActionDescription = (log: ActionLogType) => {
-    // Use structured actionResult if available
     if (log.actionResult) {
       const result = log.actionResult;
       
       switch (result.type) {
         case 'move':
           if (result.location.type === 'central') {
-            return t('log.movedToCentral');
+            return '移动到了 中央';
           } else {
             const cityOwner = players.get(result.location.cityId || '');
-            return t('log.movedToCity', { city: cityOwner?.name || '?' });
+            return `移动到了 ${cityOwner?.name || '?'} 的城池`;
           }
         
         case 'purchase':
-          return t('log.purchased', { item: t(`item.${result.item}`) });
+          return `购买了 ${t(`item.${result.item}`)}`;
         
         case 'rob':
           if (result.success && result.item) {
-            return t('log.robbed', { target: result.targetName, item: t(`item.${result.item}`) });
+            return `从 ${result.targetName} 那里获得了 ${t(`item.${result.item}`)}`;
           } else {
-            return t('log.robbedFailed', { target: result.targetName });
+            return `尝试抢夺 ${result.targetName} 但失败了`;
           }
         
         case 'attack': {
-          const killed = result.killed ? t('log.killed') : '';
-          return t('log.attackedWithDamage', {
-            target: result.targetName,
-            damage: result.damage,
-            killed,
-          });
+          const killedText = result.killed ? '，并将其击杀！' : '';
+          return `对 ${result.targetName} 发起攻击，造成了 ${result.damage} 点伤害${killedText}`;
         }
         
-        case 'launch_rocket':{
-          const locationOwner = result.location.cityId 
-            ? players.get(result.location.cityId)?.name
-            : undefined;
-          const cityName = result.location.type === 'central' 
-            ? t('game.central') 
-            : locationOwner || '?';
-          return t('log.launchedRocketToCityWithDamage', {
-            city: cityName,
-            damage: result.damage,
-          });
+        case 'launch_rocket': {
+          const locationOwner = result.location.cityId ? players.get(result.location.cityId)?.name : undefined;
+          const cityName = result.location.type === 'central' ? '中央' : `${locationOwner || '?'} 的城池`;
+          return `向 ${cityName} 发射了火箭（将造成 ${result.damage} 点伤害，下轮结束生效）`;
         }
         
         case 'rocket_hit': {
-          const locationOwner = result.location.cityId 
-            ? players.get(result.location.cityId)?.name
-            : undefined;
-          const locationName = result.location.type === 'central'
-            ? t('game.central')
-            : locationOwner || '?';
-          const killed = result.killed ? t('log.killed') : '';
-          return t('log.rocketHit', {
-            location: locationName,
-            target: result.targetName,
-            damage: result.damage,
-            killed,
-          });
+          const locationOwner = result.location.cityId ? players.get(result.location.cityId)?.name : undefined;
+          const locationName = result.location.type === 'central' ? '中央' : `${locationOwner || '?'} 的城池`;
+          const killedText = result.killed ? '，并将其击杀！' : '';
+          return `火箭命中了 ${locationName} 的 ${result.targetName}，造成了 ${result.damage} 点伤害${killedText}`;
         }
         
         case 'use_potion': {
-          const locationOwner = result.location.cityId 
-            ? players.get(result.location.cityId)?.name
-            : undefined;
-          const cityName = result.location.type === 'central'
-            ? t('game.central')
-            : locationOwner || '?';
-          return t('log.usedPotionToCity', { city: cityName });
+          const locationOwner = result.location.cityId ? players.get(result.location.cityId)?.name : undefined;
+          const cityName = result.location.type === 'central' ? '中央' : `${locationOwner || '?'} 的城池`;
+          return `向 ${cityName} 投掷了恢复药水（将恢复 ${result.steps} 点生命，下轮结束生效）`;
         }
         
         case 'potion_heal': {
-          const locationOwner = result.location.cityId 
-            ? players.get(result.location.cityId)?.name
-            : undefined;
-          const locationName = result.location.type === 'central'
-            ? t('game.central')
-            : locationOwner || '?';
-          return t('log.potionHealed', {
-            location: locationName,
-            target: result.targetName,
-            healed: result.healed,
-          });
+          return `药水生效，为 ${result.targetName} 恢复了 ${result.healed} 点生命`;
         }
         
         case 'place_bomb': {
-          const locationOwner = result.location.cityId 
-            ? players.get(result.location.cityId)?.name
-            : undefined;
-          const cityName = result.location.type === 'central'
-            ? t('game.central')
-            : locationOwner || '?';
-          return t('log.placedBomb', { location: cityName });
+          const locationOwner = result.location.cityId ? players.get(result.location.cityId)?.name : undefined;
+          const cityName = result.location.type === 'central' ? '中央' : `${locationOwner || '?'} 的城池`;
+          return `在 ${cityName} 埋下了一颗炸弹`;
         }
         
         case 'detonate_bomb':
           if (result.victims.length === 0) {
-            return t('log.detonatedBombNoVictims');
+            return `引爆了炸弹，但没有炸到任何人`;
           } else {
-            const victimNames = result.victims.map(v => `${v.name} (${v.damage}${v.killed ? ', ' + t('log.killed') : ''})`).join(', ');
-            return t('log.detonatedBomb', { victims: victimNames });
+            const victimNames = result.victims.map(v => `${v.name} (-${v.damage}血${v.killed ? ', 阵亡' : ''})`).join(', ');
+            return `引爆了炸弹，炸到了: ${victimNames}`;
           }
         
         case 'teleport': {
-          const locationOwner = result.location.cityId 
-            ? players.get(result.location.cityId)?.name
-            : undefined;
-          if (result.location.type === 'central') {
-            return t('log.teleportedToCentral');
-          } else {
-            return t('log.teleportedToCity', { city: locationOwner || '?' });
-          }
+          const locationOwner = result.location.cityId ? players.get(result.location.cityId)?.name : undefined;
+          const cityName = result.location.type === 'central' ? '中央' : `${locationOwner || '?'} 的城池`;
+          return `传送到了 ${cityName}`;
         }
         
         case 'hug': {
-          const locationOwner = result.location.cityId 
-            ? players.get(result.location.cityId)?.name
-            : undefined;
-          if (result.location.type === 'central') {
-            return t('log.huggedToCentral', { target: result.targetName });
-          } else {
-            return t('log.huggedToCity', { target: result.targetName, city: locationOwner || '?' });
-          }
+          const locationOwner = result.location.cityId ? players.get(result.location.cityId)?.name : undefined;
+          const cityName = result.location.type === 'central' ? '中央' : `${locationOwner || '?'} 的城池`;
+          return `抱着 ${result.targetName} 一起移动到了 ${cityName}`;
         }
       }
     }
     
-    // Fallback to legacy parsing for backward compatibility
     return t(`action.${log.type}`);
   };
 

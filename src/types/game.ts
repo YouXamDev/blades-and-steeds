@@ -80,6 +80,8 @@ export const ActionType = {
   TELEPORT: 'teleport',
   HUG: 'hug',
   USE_POTION: 'use_potion',
+  CLAIM_LOOT: 'claim_loot',
+  ALIEN_PASSIVE_TELEPORT: 'alien_passive_teleport',
 } as const;
 export type ActionType = typeof ActionType[keyof typeof ActionType];
 
@@ -91,6 +93,15 @@ export const GamePhase = {
   ENDED: 'ended',              // Game ended
 } as const;
 export type GamePhase = typeof GamePhase[keyof typeof GamePhase];
+
+// Pending Loot (For killing reward)
+export interface PendingLoot {
+  id: string;
+  killerId: string;
+  victimId: string;
+  victimName: string;
+  items: ItemType[];
+}
 
 // Player state
 export interface Player {
@@ -104,7 +115,7 @@ export interface Player {
     cityId?: string; // For city location, which city they're in
   };
   class: PlayerClass | null;
-  classOptions: [PlayerClass, PlayerClass] | null; // Two classes to choose from
+  classOptions: PlayerClass[] | null;
   inventory: ItemType[];
   purchaseRights: PurchaseRightType[];
   stepsRemaining: number;
@@ -136,8 +147,7 @@ export interface DelayedEffect {
     cityId?: string;
   };
   value: number; // Heal amount or damage
-  turnDelay: number; // Resolves after this many turns
-  createdAtTurn: number; // Turn when created
+  resolveAtRound: number; // 明确指出在第几轮结束时生效，前端可借此判断：若等于 currentTurn 则本轮生效，大于则下轮生效
 }
 
 // Structured action result types
@@ -176,7 +186,7 @@ export interface ActionLog {
   turn: number;
   playerId: string;
   playerName: string;
-  type: ActionType;
+  type: ActionType | 'rob'; // Compatible with claim_loot returning 'rob'
   // New structured result
   actionResult?: ActionResult;
   // Legacy fields (deprecated, kept for backward compatibility)
@@ -195,30 +205,31 @@ export interface ActionLog {
   timestamp: number;
 }
 
-// Room settings
-export interface RoomSettings {
+// Game settings
+export interface GameSettings {
   minPlayers: number;
   maxPlayers: number;
   isPublic: boolean;
+  initialHealth: number; // <--- 新增
+  classOptionsCount: number; // <--- 新增
 }
 
 // Game state
 export interface GameState {
   roomId: string;
-  phase: GamePhase;
+  hostId: string;
+  phase: 'waiting' | 'class_selection' | 'playing' | 'ended';
   players: Map<string, Player>;
+  settings: GameSettings;
   currentTurn: number;
-  currentPlayerId: string | null; // Which player's turn it is
-  currentClassSelectionPlayerId: string | null; // Which player is selecting class (for turn-based selection)
-  stepPool: number; // Random steps to distribute
+  currentPlayerId: string | null;
+  currentClassSelectionPlayerId: string | null;
   bombs: Bomb[];
   delayedEffects: DelayedEffect[];
-  actionQueue: GameAction[];
-  actionLogs: ActionLog[]; // Action history
-  settings: RoomSettings;
-  hostId: string;
-  createdAt: number;
-  updatedAt: number;
+  actionLogs: ActionLog[];
+  stepPool: number;
+  pendingLoots: PendingLoot[];
+  pendingAlienTeleports: string[];
 }
 
 // WebSocket message types
@@ -230,7 +241,9 @@ export const MessageType = {
   PERFORM_ACTION: 'perform_action',
   READY: 'ready',
   START_GAME: 'start_game',
-
+  FORCE_END_GAME: 'force_end_game',
+  RETURN_TO_ROOM: 'return_to_room',
+  UPDATE_SETTINGS: 'update_settings',
   // Server -> Client
   ROOM_STATE: 'room_state',
   PLAYER_JOINED: 'player_joined',
@@ -241,10 +254,11 @@ export const MessageType = {
   GAME_STARTED: 'game_started',
   GAME_ENDED: 'game_ended',
   ERROR: 'error',
+  NEW_ACTION_LOGS: 'new_action_logs',
 } as const;
 export type MessageType = typeof MessageType[keyof typeof MessageType];
 
-// WebSocket messages
+// WebSocket messages (Client)
 export interface JoinRoomMessage {
   type: 'join_room';
   playerId: string;
@@ -272,6 +286,27 @@ export interface ReadyMessage {
 export interface StartGameMessage {
   type: 'start_game';
   playerId: string;
+}
+
+export interface LeaveRoomMessage {
+  type: 'leave_room';
+  playerId: string;
+}
+
+export interface ForceEndGameMessage {
+  type: 'force_end_game';
+  playerId: string;
+}
+
+export interface ReturnToRoomMessage {
+  type: 'return_to_room';
+  playerId: string;
+}
+
+export interface UpdateSettingsMessage {
+  type: 'update_settings';
+  playerId: string;
+  settings: Partial<GameSettings>;
 }
 
 // Server messages
@@ -317,7 +352,11 @@ export type ClientMessage =
   | SelectClassMessage
   | PerformActionMessage
   | ReadyMessage
-  | StartGameMessage;
+  | StartGameMessage
+  | LeaveRoomMessage
+  | ForceEndGameMessage
+  | ReturnToRoomMessage
+  | UpdateSettingsMessage;
 
 export type ServerMessage =
   | RoomStateMessage

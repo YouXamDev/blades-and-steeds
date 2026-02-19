@@ -12,7 +12,7 @@ import {
   Heart
 } from 'lucide-react';
 import { StarMap } from './StarMap';
-import type { Player, GameAction, ItemType } from '../types/game';
+import type { Player, GameAction, ItemType, Bomb as BombType, DelayedEffect } from '../types/game';
 
 interface GameBoardProps {
   currentPlayer: Player;
@@ -20,11 +20,38 @@ interface GameBoardProps {
   isMyTurn: boolean;
   currentTurnPlayerId: string | null;
   onAction: (action: Partial<GameAction>) => void;
+  bombs?: BombType[];
+  delayedEffects?: DelayedEffect[];
+  currentTurn?: number;
 }
 
-export function GameBoard({ currentPlayer, allPlayers, isMyTurn, currentTurnPlayerId, onAction }: GameBoardProps) {
+export function GameBoard({ currentPlayer, allPlayers, isMyTurn, currentTurnPlayerId, onAction, bombs, delayedEffects, currentTurn }: GameBoardProps) {
   const { t } = useTranslation();
   const [potionSteps, setPotionSteps] = useState(1);
+
+  if (!currentPlayer.isAlive) {
+    return (
+      <div className="space-y-6">
+        <div className="bg-gray-900 rounded-xl shadow-lg p-8 text-center border-2 border-red-900">
+          <h2 className="text-3xl font-bold text-red-500 mb-4">☠️ 你已阵亡 ☠️</h2>
+          <p className="text-gray-400 mb-6">进入观战模式，正在观看其他玩家的对决...</p>
+        </div>
+        
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border-2 border-gray-200 dark:border-gray-700">
+          <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 text-center">
+            {t('game.map')} (观战中)
+          </h3>
+          <StarMap
+            players={allPlayers}
+            currentTurnPlayerId={currentTurnPlayerId}
+            bombs={bombs}
+            delayedEffects={delayedEffects}
+            currentTurn={currentTurn}
+          />
+        </div>
+      </div>
+    );
+  }
 
   const canMove = currentPlayer.stepsRemaining > 0;
   const canBuy = currentPlayer.location.type === 'city' && 
@@ -33,71 +60,50 @@ export function GameBoard({ currentPlayer, allPlayers, isMyTurn, currentTurnPlay
 
   const playersAtSameLocation = allPlayers.filter(p => 
     p.id !== currentPlayer.id &&
+    p.isAlive &&
     p.location.type === currentPlayer.location.type &&
     p.location.cityId === currentPlayer.location.cityId
   );
 
+  const playersAtSameOrAdjacentLocation = allPlayers.filter(p => {
+    if (p.id === currentPlayer.id || !p.isAlive) return false;
+    const isSame = p.location.type === currentPlayer.location.type && p.location.cityId === currentPlayer.location.cityId;
+    const isAdjacent = (currentPlayer.location.type === 'central' && p.location.type === 'city') || 
+                       (currentPlayer.location.type === 'city' && p.location.type === 'central');
+    return isSame || isAdjacent;
+  });
+
   const handleMoveToCity = (cityId: string) => {
     if (!canMove) return;
-    
-    onAction({
-      type: 'move',
-      targetLocation: {
-        type: 'city',
-        cityId: cityId,
-      },
-    });
+    onAction({ type: 'move', targetLocation: { type: 'city', cityId: cityId } });
   };
 
   const handleMoveToCentral = () => {
     if (!canMove) return;
-    
-    onAction({
-      type: 'move',
-      targetLocation: {
-        type: 'central',
-      },
-    });
+    onAction({ type: 'move', targetLocation: { type: 'central' } });
   };
 
-  // 获取可以移动到的位置
   const getAvailableMoveTargets = () => {
     if (!canMove) return [];
-    
-    if (currentPlayer.location.type === 'city') {
-      // 在城池中，只能去中央
-      return ['central'];
-    } else {
-      // 在中央，可以去任何城池
-      return allPlayers.map(p => p.id);
-    }
+    if (currentPlayer.location.type === 'city') return ['central'];
+    return allPlayers.map(p => p.id); 
   };
 
   const availableMoves = getAvailableMoveTargets();
 
   const handleAttackKnife = (targetId: string) => {
     if (!canMove) return;
-    onAction({
-      type: 'attack_knife',
-      target: targetId,
-    });
+    onAction({ type: 'attack_knife', target: targetId });
   };
 
   const handleAttackHorse = (targetId: string) => {
     if (!canMove || currentPlayer.location.type !== 'city') return;
-    onAction({
-      type: 'attack_horse',
-      target: targetId,
-    });
+    onAction({ type: 'attack_horse', target: targetId });
   };
 
   const handleRob = (targetId: string, item?: ItemType) => {
     if (!canMove) return;
-    onAction({
-      type: 'rob',
-      target: targetId,
-      item: item,
-    });
+    onAction({ type: 'rob', target: targetId, item: item });
   };
 
   return (
@@ -119,6 +125,9 @@ export function GameBoard({ currentPlayer, allPlayers, isMyTurn, currentTurnPlay
           highlightCities={availableMoves.filter(m => m !== 'central')}
           onCityClick={isMyTurn && availableMoves.includes('central') === false ? handleMoveToCity : undefined}
           onCentralClick={isMyTurn && availableMoves.includes('central') ? handleMoveToCentral : undefined}
+          bombs={bombs}
+          delayedEffects={delayedEffects}
+          currentTurn={currentTurn}
         />
         <div className="mt-4 text-center">
           <p className="text-sm text-gray-600 dark:text-gray-400">
@@ -134,7 +143,7 @@ export function GameBoard({ currentPlayer, allPlayers, isMyTurn, currentTurnPlay
       {/* Actions */}
       {isMyTurn ? (
         <div className="space-y-4">
-          {/* Purchase (only in own city) */}
+          {/* Purchase */}
           {canBuy && (
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
               <div className="flex items-center gap-3 mb-4">
@@ -210,31 +219,40 @@ export function GameBoard({ currentPlayer, allPlayers, isMyTurn, currentTurnPlay
                 {t('game.robHint')}
               </p>
               <div className="space-y-3">
-                {playersAtSameLocation.map((player) => (
-                  <div key={player.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-3">
-                    <p className="font-semibold text-gray-900 dark:text-white mb-2">
-                      {player.name}
-                    </p>
-                    {player.inventory.length > 0 ? (
-                      <div className="flex flex-wrap gap-2">
-                        {player.inventory.map((item, idx) => (
-                          <button
-                            key={`${item}-${idx}`}
-                            onClick={() => handleRob(player.id, item)}
-                            disabled={!canMove}
-                            className="py-1 px-3 rounded bg-yellow-500 hover:bg-yellow-600 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white text-sm font-semibold transition-colors disabled:cursor-not-allowed cursor-pointer"
-                          >
-                            {t(`item.${item}`)}
-                          </button>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        {t('game.noItems')}
+                {playersAtSameLocation.map((player) => {
+                  // 修正：从抢夺列表中彻底过滤掉脂肪衣
+                  const robbableItems = player.inventory.filter(i => i !== 'fat');
+                  return (
+                    <div key={player.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-3">
+                      <p className="font-semibold text-gray-900 dark:text-white mb-2">
+                        {player.name}
                       </p>
-                    )}
-                  </div>
-                ))}
+                      {robbableItems.length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                          {Object.entries(
+                            robbableItems.reduce((acc, item) => {
+                              acc[item] = (acc[item] || 0) + 1;
+                              return acc;
+                            }, {} as Record<string, number>)
+                          ).map(([item, count], idx) => (
+                            <button
+                              key={`${item}-${idx}`}
+                              onClick={() => handleRob(player.id, item as ItemType)}
+                              disabled={!canMove}
+                              className="py-1 px-3 rounded bg-yellow-500 hover:bg-yellow-600 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white text-sm font-semibold transition-colors disabled:cursor-not-allowed cursor-pointer"
+                            >
+                              {t(`item.${item}`)}{count > 1 ? ` x${count}` : ''}
+                            </button>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          {t('game.noItems')}
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -295,17 +313,21 @@ export function GameBoard({ currentPlayer, allPlayers, isMyTurn, currentTurnPlay
                     {!currentPlayer.inventory.includes('bow') && t('ability.needBow')}
                     {!currentPlayer.inventory.includes('arrow') && ' | ' + t('ability.needArrow')}
                   </p>
-                  {playersAtSameLocation.map((player) => (
-                    <button
-                      key={player.id}
-                      onClick={() => onAction({ type: 'shoot_arrow', target: player.id })}
-                      disabled={!canMove || !currentPlayer.inventory.includes('bow') || !currentPlayer.inventory.includes('arrow')}
-                      className="w-full py-2 px-3 rounded bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white text-sm font-semibold cursor-pointer disabled:cursor-not-allowed"
-                    >
-                      <Target className="w-4 h-4 inline mr-1" />
-                      {player.name}
-                    </button>
-                  ))}
+                  <div className="grid grid-cols-2 gap-2">
+                    {playersAtSameOrAdjacentLocation.length > 0 ? playersAtSameOrAdjacentLocation.map((player) => (
+                      <button
+                        key={player.id}
+                        onClick={() => onAction({ type: 'shoot_arrow', target: player.id })}
+                        disabled={!canMove || !currentPlayer.inventory.includes('bow') || !currentPlayer.inventory.includes('arrow')}
+                        className="w-full py-2 px-3 rounded bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white text-sm font-semibold cursor-pointer disabled:cursor-not-allowed truncate"
+                      >
+                        <Target className="w-4 h-4 inline mr-1" />
+                        {player.name}
+                      </button>
+                    )) : (
+                      <span className="text-xs text-gray-500 col-span-2">{t('game.noPlayersHere')}</span>
+                    )}
+                  </div>
                 </div>
               )}
 
@@ -362,39 +384,64 @@ export function GameBoard({ currentPlayer, allPlayers, isMyTurn, currentTurnPlay
 
               {/* Boxer: Punch */}
               {currentPlayer.class === 'boxer' && (
-                <div className="space-y-2">
+                <div className="space-y-4">
                   <p className="text-xs text-gray-600 dark:text-gray-400">
-                    {currentPlayer.inventory.filter(i => i === 'bronze_glove' || i === 'silver_glove' || i === 'gold_glove').length === 0 && t('ability.needGlove')}
+                    {currentPlayer.inventory.filter(i => ['bronze_glove', 'silver_glove', 'gold_glove'].includes(i)).length === 0 && t('ability.needGlove')}
                   </p>
-                  {playersAtSameLocation.map((player) => (
-                    <button
-                      key={player.id}
-                      onClick={() => onAction({ type: 'punch', target: player.id })}
-                      disabled={!canMove || currentPlayer.inventory.filter(i => i === 'bronze_glove' || i === 'silver_glove' || i === 'gold_glove').length === 0}
-                      className="w-full py-2 px-3 rounded bg-amber-500 hover:bg-amber-600 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white text-sm font-semibold cursor-pointer disabled:cursor-not-allowed"
-                    >
-                      👊 {player.name}
-                    </button>
-                  ))}
+                  {['bronze_glove', 'silver_glove', 'gold_glove'].map(glove => {
+                    const hasGlove = currentPlayer.inventory.includes(glove as ItemType);
+                    if (!hasGlove) return null;
+                    return (
+                      <div key={glove} className="border border-gray-200 dark:border-gray-700 rounded-lg p-2">
+                        <p className="text-sm font-semibold mb-2">{t(`item.${glove}`)}</p>
+                        <div className="grid grid-cols-2 gap-2">
+                          {playersAtSameLocation.length > 0 ? playersAtSameLocation.map(player => (
+                            <button
+                              key={player.id}
+                              onClick={() => onAction({ type: 'punch', target: player.id, item: glove as ItemType })}
+                              disabled={!canMove}
+                              className="py-1 px-2 rounded bg-amber-500 hover:bg-amber-600 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white text-xs font-semibold cursor-pointer disabled:cursor-not-allowed truncate"
+                            >
+                              👊 {player.name}
+                            </button>
+                          )) : <span className="text-xs text-gray-500 col-span-2">{t('game.noPlayersHere')}</span>}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
 
               {/* Monk: Kick */}
               {currentPlayer.class === 'monk' && (
-                <div className="space-y-2">
+                <div className="space-y-4">
                   <p className="text-xs text-gray-600 dark:text-gray-400">
-                    {currentPlayer.inventory.filter(i => i === 'bronze_belt' || i === 'silver_belt' || i === 'gold_belt').length === 0 && t('ability.needBelt')}
+                    {currentPlayer.inventory.filter(i => ['bronze_belt', 'silver_belt', 'gold_belt'].includes(i)).length === 0 && t('ability.needBelt')}
                   </p>
-                  {allPlayers.filter(p => p.id !== currentPlayer.id && p.isAlive).map((player) => (
-                    <button
-                      key={player.id}
-                      onClick={() => onAction({ type: 'kick', target: player.id })}
-                      disabled={!canMove || currentPlayer.inventory.filter(i => i === 'bronze_belt' || i === 'silver_belt' || i === 'gold_belt').length === 0}
-                      className="w-full py-2 px-3 rounded bg-purple-500 hover:bg-purple-600 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white text-sm font-semibold cursor-pointer disabled:cursor-not-allowed"
-                    >
-                      🦵 {player.name}
-                    </button>
-                  ))}
+                  {['bronze_belt', 'silver_belt', 'gold_belt'].map(belt => {
+                    const hasBelt = currentPlayer.inventory.includes(belt as ItemType);
+                    if (!hasBelt) return null;
+                    
+                    const validTargets = belt === 'silver_belt' ? playersAtSameOrAdjacentLocation : playersAtSameLocation;
+
+                    return (
+                      <div key={belt} className="border border-gray-200 dark:border-gray-700 rounded-lg p-2">
+                        <p className="text-sm font-semibold mb-2">{t(`item.${belt}`)}</p>
+                        <div className="grid grid-cols-2 gap-2">
+                          {validTargets.length > 0 ? validTargets.map(player => (
+                            <button
+                              key={player.id}
+                              onClick={() => onAction({ type: 'kick', target: player.id, item: belt as ItemType })}
+                              disabled={!canMove}
+                              className="py-1 px-2 rounded bg-purple-500 hover:bg-purple-600 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white text-xs font-semibold cursor-pointer disabled:cursor-not-allowed truncate"
+                            >
+                              🦵 {player.name}
+                            </button>
+                          )) : <span className="text-xs text-gray-500 col-span-2">{t('game.noPlayersHere')}</span>}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
 
@@ -440,21 +487,25 @@ export function GameBoard({ currentPlayer, allPlayers, isMyTurn, currentTurnPlay
                           {player.name}
                         </p>
                         <div className="grid grid-cols-2 gap-2">
-                          <button
-                            onClick={() => onAction({ type: 'hug', target: player.id, targetLocation: { type: 'central' } })}
-                            disabled={!canMove || currentPlayer.stepsRemaining < 2}
-                            className="py-1 px-2 rounded bg-pink-500 hover:bg-pink-600 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white text-xs font-semibold cursor-pointer disabled:cursor-not-allowed"
-                          >
-                            {t('ability.toBeCentral')}
-                          </button>
-                          {allPlayers.slice(0, 3).map((p) => (
+                          {/* 从城池抱到中央 */}
+                          {currentPlayer.location.type === 'city' && (
+                            <button
+                              onClick={() => onAction({ type: 'hug', target: player.id, targetLocation: { type: 'central' } })}
+                              disabled={!canMove || currentPlayer.stepsRemaining < 2}
+                              className="py-1 px-2 rounded bg-pink-500 hover:bg-pink-600 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white text-xs font-semibold cursor-pointer disabled:cursor-not-allowed"
+                            >
+                              {t('ability.toBeCentral')}
+                            </button>
+                          )}
+                          {/* 修改：从中央抱到任何城池（移除 filter，因为所有人的城池都是合法目的地） */}
+                          {currentPlayer.location.type === 'central' && allPlayers.map((p) => (
                             <button
                               key={p.id}
                               onClick={() => onAction({ type: 'hug', target: player.id, targetLocation: { type: 'city', cityId: p.id } })}
                               disabled={!canMove || currentPlayer.stepsRemaining < 2}
                               className="py-1 px-2 rounded bg-pink-500 hover:bg-pink-600 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white text-xs font-semibold truncate cursor-pointer disabled:cursor-not-allowed"
                             >
-                              {p.name}
+                              {p.name} 的城池
                             </button>
                           ))}
                         </div>

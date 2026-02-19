@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, Users, Heart, Footprints } from 'lucide-react';
+import { Users, Heart, Footprints, Power, RotateCcw, LogOut, Eye } from 'lucide-react'; 
 import { useWebSocket } from '../hooks/useWebSocket';
 import { getUserId, getUserProfile } from '../utils/auth';
 import { PlayerList } from '../components/PlayerList';
 import { GameBoard } from '../components/GameBoard';
 import { ActionLog } from '../components/ActionLog';
-import type { GameState, Player, PlayerClass, GameAction } from '../types/game';
+import type { GameState, Player, PlayerClass, GameAction, ItemType } from '../types/game';
 
 export function GameRoom() {
   const { roomId } = useParams<{ roomId: string }>();
@@ -17,8 +17,15 @@ export function GameRoom() {
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
 
+  const [isModalHidden, setIsModalHidden] = useState(false);
+  const pendingAlien = gameState?.phase === 'playing' && gameState.pendingAlienTeleports?.includes(getUserId());
+  const pendingLoot = gameState?.phase === 'playing' && !pendingAlien && (gameState?.pendingLoots?.filter(p => p.killerId === getUserId()) || []).length > 0;
+  
   useEffect(() => {
-    // Set page title based on game phase
+    setIsModalHidden(false);
+  }, [pendingAlien, pendingLoot]);
+
+  useEffect(() => {
     if (gameState) {
       const phaseTitle = gameState.phase === 'waiting' 
         ? t('room.waiting')
@@ -33,14 +40,11 @@ export function GameRoom() {
 
   useEffect(() => {
     if (!isConnected) return;
-
     const profile = getUserProfile();
     if (!profile) {
       navigate('/profile');
       return;
     }
-
-    // Join room
     send({
       type: 'join_room',
       playerId: getUserId(),
@@ -54,8 +58,6 @@ export function GameRoom() {
 
     if (lastMessage.type === 'room_state') {
       const state = lastMessage.state as any;
-      
-      // Convert players array back to Map if needed
       const processedState = {
         ...state,
         players: Array.isArray(state.players) 
@@ -63,27 +65,22 @@ export function GameRoom() {
           : state.players
       };
       
-      // If logs are included in this update, use them; otherwise keep existing logs
       if (state.actionLogs !== undefined) {
         setGameState(processedState);
       } else {
-        // Incremental update without logs - preserve existing logs
         setGameState(prevState => ({
           ...processedState,
           actionLogs: prevState?.actionLogs || [],
         }));
       }
       
-      // Find current player
       const userId = getUserId();
       const player = processedState.players.get(userId);
       setCurrentPlayer(player || null);
     } else if (lastMessage.type === 'new_action_logs') {
-      // Handle incremental log updates
       if (lastMessage.logs) {
         setGameState(prevState => {
           if (!prevState) return prevState;
-          
           return {
             ...prevState,
             actionLogs: [...(prevState.actionLogs || []), ...lastMessage.logs],
@@ -93,11 +90,10 @@ export function GameRoom() {
     } else if (lastMessage.type === 'error') {
       alert(lastMessage.message);
     }
-  }, [lastMessage, messageTimestamp]); // Don't include gameState to avoid circular dependencies
+  }, [lastMessage, messageTimestamp]);
 
   const handleSelectClass = (selectedClass: PlayerClass) => {
     if (!currentPlayer) return;
-    
     send({
       type: 'select_class',
       playerId: getUserId(),
@@ -110,6 +106,42 @@ export function GameRoom() {
       type: 'start_game',
       playerId: getUserId(),
     });
+  };
+
+  const handleUpdateSettings = (settings: Partial<GameSettings>) => {
+    send({
+      type: 'update_settings',
+      playerId: getUserId(),
+      settings,
+    });
+  };
+
+  const handleForceEnd = () => {
+    if (window.confirm(t('game.confirmForceEnd') || '确定要强制结束当前游戏吗？')) {
+      send({
+        type: 'force_end_game',
+        playerId: getUserId(),
+      });
+    }
+  };
+
+  const handleReturnToRoom = () => {
+    send({
+      type: 'return_to_room',
+      playerId: getUserId(),
+    });
+  };
+
+  const handleLeaveRoom = () => {
+    if (window.confirm(t('room.confirmLeave') || '确定要退出房间吗？')) {
+      send({
+        type: 'leave_room',
+        playerId: getUserId()
+      });
+      setTimeout(() => {
+        navigate('/');
+      }, 100);
+    }
   };
 
   const handleAction = (action: Partial<GameAction>) => {
@@ -129,7 +161,7 @@ export function GameRoom() {
     });
   };
 
-  if (!isConnected) {
+  if (!isConnected || !gameState) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
         <div className="text-lg dark:text-white">{t('common.loading')}</div>
@@ -137,29 +169,148 @@ export function GameRoom() {
     );
   }
 
-  if (!gameState) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
-        <div className="text-lg dark:text-white">{t('common.loading')}</div>
-      </div>
-    );
-  }
+  const isHost = gameState.hostId === getUserId();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 relative">
+      
+      {/* 悬浮按钮：当弹窗被隐藏时，在右下角显示唤回按钮 */}
+      {(pendingAlien || pendingLoot) && isModalHidden && (
+        <button
+          onClick={() => setIsModalHidden(false)}
+          className="fixed bottom-8 right-8 z-[100] px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full shadow-2xl font-bold flex items-center gap-2 animate-bounce cursor-pointer"
+        >
+          👆 回到选择面板
+        </button>
+      )}
+
+      {/* 弹窗 1: 外星人超时空跃迁 (最高优先级) */}
+      {pendingAlien && !isModalHidden && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4 backdrop-blur-md">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6 max-w-md w-full animate-in fade-in zoom-in border-2 border-cyan-500 relative">
+            
+            {/* 新增：隐藏弹窗按键 */}
+            <button 
+              onClick={() => setIsModalHidden(true)}
+              className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 flex items-center gap-1 text-sm font-semibold cursor-pointer"
+            >
+              <Eye className="w-4 h-4" /> 查看场上
+            </button>
+
+            <h2 className="text-2xl font-bold text-cyan-600 dark:text-cyan-400 mb-2 mt-4">🛸 外星人被动触发</h2>
+            <p className="text-gray-600 dark:text-gray-400 mb-6 font-medium">
+              本回合所有人已行动完毕。凭借双飞碟的能量，你在延时技能生效前可进行一次免费瞬移！请选择目标：
+            </p>
+            
+            <div className="grid grid-cols-2 gap-3 mb-6">
+              <button
+                onClick={() => handleAction({ type: 'alien_passive_teleport', targetLocation: { type: 'central' } })}
+                className="py-2 px-3 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-semibold transition-colors shadow-md cursor-pointer"
+              >
+                中央
+              </button>
+              {Array.from(gameState.players.values()).filter(p => p.isAlive).map(p => (
+                <button
+                  key={p.id}
+                  onClick={() => handleAction({ type: 'alien_passive_teleport', targetLocation: { type: 'city', cityId: p.id } })}
+                  className="py-2 px-3 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-semibold transition-colors shadow-md truncate cursor-pointer"
+                >
+                  {p.name} 的城池
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={() => handleAction({ type: 'alien_passive_teleport', targetLocation: currentPlayer?.location })}
+              className="w-full py-2 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors cursor-pointer"
+            >
+              放弃并留在原地
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 弹窗 2: 战利品选择弹窗 (优先级次之) */}
+      {pendingLoot && !isModalHidden && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6 max-w-md w-full animate-in fade-in zoom-in border-2 border-yellow-500 relative">
+            
+            {/* 新增：隐藏弹窗按键 */}
+            <button 
+              onClick={() => setIsModalHidden(true)}
+              className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 flex items-center gap-1 text-sm font-semibold cursor-pointer"
+            >
+              <Eye className="w-4 h-4" /> 查看场上
+            </button>
+
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2 mt-4">击杀奖励 🎁</h2>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              你击杀了 <span className="font-bold text-red-500">
+                {gameState.pendingLoots.filter(p => p.killerId === getUserId())[0].victimName}
+              </span>！请选择一件战利品：
+            </p>
+            
+            <div className="grid grid-cols-2 gap-3 mb-6">
+              {Object.entries(
+                gameState.pendingLoots.filter(p => p.killerId === getUserId())[0].items.reduce((acc, item) => {
+                  acc[item] = (acc[item] || 0) + 1;
+                  return acc;
+                }, {} as Record<string, number>)
+              ).map(([item, count]) => (
+                <button
+                  key={item}
+                  onClick={() => handleAction({ 
+                    type: 'claim_loot', 
+                    target: gameState.pendingLoots.filter(p => p.killerId === getUserId())[0].victimId, 
+                    item: item as ItemType 
+                  })}
+                  className="py-2 px-3 rounded-lg bg-yellow-500 hover:bg-yellow-600 text-white font-semibold transition-colors shadow-md cursor-pointer"
+                >
+                  {t(`item.${item}`)} {count > 1 ? `x${count}` : ''}
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={() => handleAction({ 
+                type: 'claim_loot', 
+                target: gameState.pendingLoots.filter(p => p.killerId === getUserId())[0].victimId 
+              })}
+              className="w-full py-2 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors cursor-pointer"
+            >
+              放弃战利品
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="container mx-auto px-4 py-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <button
-            onClick={() => navigate('/')}
-            className="flex items-center gap-2 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer"
+            onClick={handleLeaveRoom}
+            className="flex items-center gap-2 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors cursor-pointer font-semibold"
           >
-            <ArrowLeft className="w-5 h-5" />
-            {t('common.back')}
+            <LogOut className="w-5 h-5" />
+            {t('room.leave') || '退出房间'}
           </button>
-          <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
-            <Users className="w-5 h-5" />
-            <span>{gameState.players.size}/{gameState.settings.maxPlayers}</span>
+          
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
+              <Users className="w-5 h-5" />
+              <span>{gameState.players.size}/{gameState.settings.maxPlayers}</span>
+            </div>
+            
+            {isHost && (gameState.phase === 'playing' || gameState.phase === 'class_selection') && (
+              <button
+                onClick={handleForceEnd}
+                className="flex items-center gap-1 px-3 py-1.5 rounded bg-red-100 text-red-600 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50 transition-colors text-sm font-semibold cursor-pointer"
+                title={t('game.forceEnd') || '强制结束'}
+              >
+                <Power className="w-4 h-4" />
+                <span className="hidden sm:inline">{t('game.forceEnd') || '结束'}</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -176,11 +327,58 @@ export function GameRoom() {
                 showStatus={false}
               />
 
-              {gameState.hostId === getUserId() && (
+              {/* 新增：房间设置面板 */}
+              <div className="mt-8 mb-6 bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6 border border-gray-200 dark:border-gray-600">
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                  ⚙️ 房间高级设置
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                      玩家初始血量
+                    </label>
+                    {isHost ? (
+                      <input
+                        type="number"
+                        min="1"
+                        max="100"
+                        value={gameState.settings.initialHealth ?? 10}
+                        onChange={(e) => handleUpdateSettings({ initialHealth: parseInt(e.target.value) || 10 })}
+                        className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition-shadow"
+                      />
+                    ) : (
+                      <div className="w-full px-4 py-2 rounded-lg bg-gray-200 dark:bg-gray-600 text-gray-900 dark:text-white font-medium">
+                        {gameState.settings.initialHealth ?? 10}
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                      每人可选职业数
+                    </label>
+                    {isHost ? (
+                      <input
+                        type="number"
+                        min="1"
+                        max="9"
+                        value={gameState.settings.classOptionsCount ?? 3}
+                        onChange={(e) => handleUpdateSettings({ classOptionsCount: parseInt(e.target.value) || 3 })}
+                        className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition-shadow"
+                      />
+                    ) : (
+                      <div className="w-full px-4 py-2 rounded-lg bg-gray-200 dark:bg-gray-600 text-gray-900 dark:text-white font-medium">
+                        {gameState.settings.classOptionsCount ?? 3}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {isHost && (
                 <button
                   onClick={handleStartGame}
                   disabled={gameState.players.size < gameState.settings.minPlayers}
-                  className="w-full mt-6 py-3 rounded-lg bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-semibold shadow-lg hover:shadow-xl transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  className="w-full mt-2 py-3 rounded-lg bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-semibold shadow-lg hover:shadow-xl transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                 >
                   {t('room.startGame')}
                 </button>
@@ -198,7 +396,6 @@ export function GameRoom() {
               </h2>
 
               {currentPlayer?.class ? (
-                // Player has selected a class
                 <div className="text-center py-6">
                   <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/20 mb-4">
                     <svg className="w-8 h-8 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -212,7 +409,6 @@ export function GameRoom() {
                     {t('game.waitingForOthers')}
                   </p>
                   
-                  {/* Show all players' status */}
                   <PlayerList 
                     players={Array.from(gameState.players.values())}
                     highlightPlayerId={getUserId()}
@@ -221,12 +417,11 @@ export function GameRoom() {
                   />
                 </div>
               ) : currentPlayer?.classOptions ? (
-                // Player needs to select (it's their turn)
                 <div>
                   <p className="text-center text-lg font-semibold text-blue-600 dark:text-blue-400 mb-6">
                     {t('game.yourTurn')}
                   </p>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
                     {currentPlayer.classOptions.map((classType) => (
                       <button
                         key={classType}
@@ -243,7 +438,6 @@ export function GameRoom() {
                     ))}
                   </div>
                   
-                  {/* Show all players' status */}
                   <div className="mt-6">
                     <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
                       {t('game.allPlayersStatus')}
@@ -258,7 +452,6 @@ export function GameRoom() {
                   </div>
                 </div>
               ) : (
-                // Waiting for turn
                 <div className="text-center py-12">
                   <p className="text-gray-600 dark:text-gray-400 mb-6">
                     {gameState.currentClassSelectionPlayerId && (
@@ -271,7 +464,6 @@ export function GameRoom() {
                     )}
                   </p>
                   
-                  {/* Show all players' status */}
                   <PlayerList 
                     players={Array.from(gameState.players.values())}
                     currentPlayerId={gameState.currentClassSelectionPlayerId}
@@ -288,7 +480,6 @@ export function GameRoom() {
         {/* Playing Phase */}
         {gameState.phase === 'playing' && currentPlayer && (
           <div className="space-y-6">
-            {/* All Players Overview */}
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6">
               <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">
                 {t('room.players')}
@@ -303,9 +494,7 @@ export function GameRoom() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Player Info and Action Log */}
               <div className="lg:col-span-1 space-y-6">
-                {/* Player Info */}
                 <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6">
                   <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">{currentPlayer.name}</h3>
                   <div className="space-y-3">
@@ -330,12 +519,17 @@ export function GameRoom() {
                         {t('game.inventory')}
                       </p>
                       <div className="flex flex-wrap gap-2">
-                        {currentPlayer.inventory.map((item, idx) => (
+                        {Object.entries(
+                          currentPlayer.inventory.reduce((acc, item) => {
+                            acc[item] = (acc[item] || 0) + 1;
+                            return acc;
+                          }, {} as Record<string, number>)
+                        ).map(([item, count], idx) => (
                           <span
                             key={idx}
                             className="px-3 py-1 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm"
                           >
-                            {t(`item.${item}`)}
+                            {t(`item.${item}`)}{count > 1 ? ` x${count}` : ''}
                           </span>
                         ))}
                       </div>
@@ -343,7 +537,6 @@ export function GameRoom() {
                   </div>
                 </div>
 
-                {/* Action Log */}
                 <ActionLog
                   logs={gameState.actionLogs || []}
                   currentPlayerId={getUserId()}
@@ -351,7 +544,6 @@ export function GameRoom() {
                 />
               </div>
 
-              {/* Game Board */}
               <div className="lg:col-span-2">
                 <GameBoard
                   currentPlayer={currentPlayer}
@@ -359,13 +551,16 @@ export function GameRoom() {
                   isMyTurn={gameState.currentPlayerId === getUserId()}
                   currentTurnPlayerId={gameState.currentPlayerId}
                   onAction={handleAction}
+                  bombs={gameState.bombs}
+                  delayedEffects={gameState.delayedEffects}
+                  currentTurn={gameState.currentTurn}
                 />
               </div>
             </div>
           </div>
         )}
 
-        {/* Game Ended */}
+        {/* Game Ended Phase */}
         {gameState.phase === 'ended' && (
           <div className="max-w-2xl mx-auto">
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-8">
@@ -373,8 +568,7 @@ export function GameRoom() {
                 {t('game.phase.ended')}
               </h2>
               
-              {/* Rankings */}
-              <div className="mb-6">
+              <div className="mb-8">
                 <h3 className="text-xl font-semibold mb-4 text-center text-gray-900 dark:text-white">
                   {t('game.finalRankings')}
                 </h3>
@@ -395,12 +589,10 @@ export function GameRoom() {
                             : 'bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600'
                         }`}
                       >
-                        {/* Rank */}
                         <div className="flex-shrink-0 w-10 h-10 rounded-full bg-white dark:bg-gray-800 flex items-center justify-center font-bold text-lg">
                           {player.rank}
                         </div>
                         
-                        {/* Avatar */}
                         {player.avatar ? (
                           <img
                             src={player.avatar}
@@ -413,7 +605,6 @@ export function GameRoom() {
                           </div>
                         )}
                         
-                        {/* Name and Class */}
                         <div className="flex-1">
                           <p className="font-semibold text-gray-900 dark:text-white">
                             {player.name}
@@ -425,7 +616,6 @@ export function GameRoom() {
                           )}
                         </div>
                         
-                        {/* Winner badge */}
                         {index === 0 && (
                           <div className="flex-shrink-0 px-3 py-1 rounded-full bg-yellow-400 dark:bg-yellow-500 text-yellow-900 dark:text-yellow-100 text-sm font-bold">
                             🏆 {t('game.winner')}
@@ -436,12 +626,24 @@ export function GameRoom() {
                 </div>
               </div>
               
-              <button
-                onClick={() => navigate('/')}
-                className="w-full px-8 py-3 rounded-lg bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-semibold shadow-lg hover:shadow-xl transition-all cursor-pointer"
-              >
-                {t('common.back')}
-              </button>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <button
+                  onClick={handleLeaveRoom}
+                  className="w-full px-8 py-3 rounded-lg border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+                >
+                  退出房间
+                </button>
+                
+                {isHost && (
+                  <button
+                    onClick={handleReturnToRoom}
+                    className="w-full px-8 py-3 rounded-lg bg-gradient-to-r from-green-500 to-teal-600 text-white font-semibold shadow-lg hover:shadow-xl transition-all cursor-pointer flex justify-center items-center gap-2"
+                  >
+                    <RotateCcw className="w-5 h-5" />
+                    {t('game.playAgain') || '再来一局'}
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         )}

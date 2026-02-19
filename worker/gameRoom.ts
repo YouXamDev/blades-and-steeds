@@ -38,11 +38,43 @@ function getAllPlayerClasses(): PlayerClass[] {
   ];
 }
 
-// Helper to get two random different classes
-function getTwoRandomClasses(): [PlayerClass, PlayerClass] {
+// Helper to get three random different classes (修改：3选1)
+function getThreeRandomClasses(): [PlayerClass, PlayerClass, PlayerClass] {
   const allClasses = getAllPlayerClasses();
   const shuffled = [...allClasses].sort(() => Math.random() - 0.5);
-  return [shuffled[0], shuffled[1]];
+  return [shuffled[0], shuffled[1], shuffled[2]];
+}
+
+// 新增辅助函数：获取物品购买消耗步数 (修改：定义不同物品的购买步数)
+function getPurchaseCost(item: PurchaseRightType): number {
+  switch (item) {
+    case 'bow':
+    case 'rocket_launcher':
+    case 'ufo':
+    case 'rocket_ammo':
+    case 'silver_glove':
+    case 'silver_belt':
+      return 2;
+    case 'gold_glove':
+    case 'gold_belt':
+      return 3;
+    default:
+      return 1; // 刀、马、铜装备、炸弹、箭头、药水等默认为 1 步
+  }
+}
+
+function getAvailableClasses(gameState: GameState, count: number): PlayerClass[] {
+  const classCounts = new Map<PlayerClass, number>();
+  for (const p of gameState.players.values()) {
+    if (p.class) {
+      classCounts.set(p.class, (classCounts.get(p.class) || 0) + 1);
+    }
+  }
+  // 过滤掉已经有2个人的职业
+  const available = getAllPlayerClasses().filter(c => (classCounts.get(c) || 0) < 2);
+  const shuffled = available.sort(() => Math.random() - 0.5);
+  // 返回指定数量（如果不够则返回剩余的所有可用职业）
+  return shuffled.slice(0, count);
 }
 
 // Helper to get initial inventory based on class
@@ -63,7 +95,7 @@ function getInitialInventory(playerClass: PlayerClass): ItemType[] {
 function getInitialPurchaseRights(playerClass: PlayerClass): PurchaseRightType[] {
   switch (playerClass) {
     case 'mage':
-      return ['knife', 'horse', 'potion'];
+      return ['knife', 'horse']; // 修改：移除了 'potion'，无需购买直接施放
     case 'archer':
       return ['knife', 'horse', 'bow', 'arrow'];
     case 'rocketeer':
@@ -107,14 +139,21 @@ export class GameRoom extends DurableObject<Env> {
 
   private async ensureStateLoaded(): Promise<void> {
     if (this.stateLoaded) return;
-    
     const saved = await this.ctx.storage.get('gameState');
     if (saved) {
       const data = saved as any;
       this.gameState = {
         ...data,
+        // 新增兼容旧存档的设置默认值
+        settings: {
+          ...data.settings,
+          initialHealth: data.settings?.initialHealth ?? 10,
+          classOptionsCount: data.settings?.classOptionsCount ?? 3,
+        },
         players: new Map(data.players.map((p: any) => [p.id, p])),
-        actionLogs: data.actionLogs || [], // Ensure actionLogs exists for old game states
+        actionLogs: data.actionLogs || [],
+        pendingLoots: data.pendingLoots || [],
+        pendingAlienTeleports: data.pendingAlienTeleports || [],
       };
     }
     this.stateLoaded = true;
@@ -239,6 +278,9 @@ export class GameRoom extends DurableObject<Env> {
       case 'join_room':
         await this.handleJoinRoom(ws, message);
         break;
+      case 'leave_room': // 新增分支
+        await this.handleLeaveRoom(ws, message);
+        break;
       case 'select_class':
         await this.handleSelectClass(ws, message);
         break;
@@ -251,9 +293,154 @@ export class GameRoom extends DurableObject<Env> {
       case 'perform_action':
         await this.handlePerformAction(ws, message);
         break;
+      case 'force_end_game':
+        await this.handleForceEndGame(ws, message);
+        break;
+      case 'return_to_room':
+        await this.handleReturnToRoom(ws, message);
+        break;
+      case 'update_settings': await this.handleUpdateSettings(ws, message); break;
       default:
         this.sendError(ws, 'Unknown message type');
     }
+  }
+
+  private async handleUpdateSettings(ws: WebSocket, message: any): Promise<void> {
+    if (!this.gameState || message.playerId !== this.gameState.hostId || this.gameState.phase !== 'waiting') return;
+    
+    this.gameState.settings = { ...this.gameState.settings, ...message.settings };
+    
+    // 边界值保护
+    if (this.gameState.settings.initialHealth < 1) this.gameState.settings.initialHealth = 1;
+    if (this.gameState.settings.classOptionsCount < 1) this.gameState.settings.classOptionsCount = 1;
+
+    // 即时同步：更新所有等待房间内玩家的血量
+    const initHealth = this.gameState.settings.initialHealth;
+    for (const player of this.gameState.players.values()) {
+      player.health = initHealth;
+      player.maxHealth = initHealth;
+    }
+
+    await this.saveGameState();
+    this.broadcast({ type: 'room_state', state: this.serializeGameState(false) });
+  }
+
+  private async handleLeaveRoom(ws: WebSocket, message: { playerId: string }): Promise<void> {
+    if (!this.gameState) return;
+
+    const playerId = message.playerId;
+    const player = this.gameState.players.get(playerId);
+    
+    if (!player) return;
+
+    // 清理该玩家的 session
+    this.sessions.delete(ws);
+
+    if (this.gameState.phase === 'waiting') {
+      // 在等待阶段：彻底从房间删除该玩家
+      this.gameState.players.delete(playerId);
+      
+      // 如果退出的恰好是房主，则把房主权限移交给下一个人
+      if (this.gameState.hostId === playerId) {
+        const remainingPlayers = Array.from(this.gameState.players.keys());
+        if (remainingPlayers.length > 0) {
+          this.gameState.hostId = remainingPlayers[0];
+        }
+      }
+    } else {
+      // 在游戏进行中退出：标记为离线直接死亡，让出回合
+      player.isConnected = false;
+      if (player.isAlive) {
+        player.health = 0;
+        player.isAlive = false;
+        player.deathTime = Date.now();
+        
+        // 如果恰好是他的回合，跳过当前回合
+        if (this.gameState.currentPlayerId === playerId) {
+          await this.nextTurn();
+        }
+      }
+    }
+
+    await this.saveGameState();
+    await this.updateRoomRegistry();
+
+    // 广播更新给房间里的其他玩家
+    this.broadcast({
+      type: 'room_state',
+      state: this.serializeGameState(false),
+    });
+  }
+  
+  private async handleForceEndGame(ws: WebSocket, message: { playerId: string }): Promise<void> {
+    if (!this.gameState) return;
+    if (message.playerId !== this.gameState.hostId) {
+      this.sendError(ws, 'Only host can force end the game');
+      return;
+    }
+    if (this.gameState.phase === 'waiting' || this.gameState.phase === 'ended') {
+      this.sendError(ws, 'Game is not in progress');
+      return;
+    }
+
+    this.gameState.phase = 'ended';
+    
+    // 标记当前状况为结束
+    const alivePlayers = Array.from(this.gameState.players.values()).filter(p => p.isAlive);
+    
+    this.broadcast({
+      type: 'game_ended',
+      winnerId: alivePlayers.length === 1 ? alivePlayers[0].id : 'none',
+      reason: 'Host forced game to end',
+    });
+
+    await this.saveGameState();
+    await this.updateRoomRegistry();
+  }
+
+  private async handleReturnToRoom(ws: WebSocket, message: { playerId: string }): Promise<void> {
+    if (!this.gameState) return;
+    if (message.playerId !== this.gameState.hostId) {
+      this.sendError(ws, 'Only host can return to room');
+      return;
+    }
+    if (this.gameState.phase !== 'ended') {
+      this.sendError(ws, 'Game must be ended to return to room');
+      return;
+    }
+
+    // 重置房间公共状态
+    this.gameState.phase = 'waiting';
+    this.gameState.currentTurn = 0;
+    this.gameState.currentPlayerId = null;
+    this.gameState.currentClassSelectionPlayerId = null;
+    this.gameState.bombs = [];
+    this.gameState.delayedEffects = [];
+    this.gameState.actionLogs = [];
+    this.gameState.pendingLoots = []; // 清空战利品队列
+    this.gameState.pendingAlienTeleports = []; // 清空外星人瞬移队列
+    
+    const initHealth = this.gameState.settings.initialHealth ?? 10;
+    for (const player of this.gameState.players.values()) {
+      player.health = initHealth;
+      player.maxHealth = initHealth;
+      player.location = { type: 'city', cityId: player.id };
+      player.class = null;
+      player.classOptions = null;
+      player.inventory = [];
+      player.purchaseRights = [];
+      player.stepsRemaining = 0;
+      player.isAlive = true;
+      player.isReady = false;
+      delete player.deathTime;
+      delete player.rank;
+    }
+
+    await this.saveGameState();
+    await this.updateRoomRegistry();
+
+    // 广播全新的初始状态
+    this.broadcast({ type: 'room_state', state: this.serializeGameState() });
   }
 
   private async handleJoinRoom(ws: WebSocket, message: { playerId: string; playerName: string; avatar?: string }): Promise<void> {
@@ -270,17 +457,12 @@ export class GameRoom extends DurableObject<Env> {
         stepPool: 0,
         bombs: [],
         delayedEffects: [],
-        actionQueue: [],
         actionLogs: [],
-        settings: {
-          minPlayers: 2,
-          maxPlayers: 9,
-          isPublic: this.roomIsPublic, // Use the isPublic value from URL parameter
-        },
+        pendingLoots: [], // 新增：待认领的战利品队列
+        pendingAlienTeleports: [], // 新增：等待中的外星人瞬移（记录playerId）
+        settings: { minPlayers: 2, maxPlayers: 9, isPublic: this.roomIsPublic, initialHealth: 10, classOptionsCount: 3 },
         hostId: message.playerId,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-      };
+      } as any; // 这里使用 as any 兼容原有部分未定义字段，防止TS报错
     }
 
     // Check if player already exists (reconnection)
@@ -294,64 +476,34 @@ export class GameRoom extends DurableObject<Env> {
       existingPlayer.isConnected = true;
       
       // Update player info if provided
-      if (message.playerName) {
-        existingPlayer.name = message.playerName;
-      }
-      if (message.avatar !== undefined) {
-        existingPlayer.avatar = message.avatar;
-      }
+      if (message.playerName) existingPlayer.name = message.playerName;
+      if (message.avatar !== undefined) existingPlayer.avatar = message.avatar;
       
       await this.saveGameState();
       await this.updateRoomRegistry();
       
       // Send current state to the reconnecting player (with full logs)
-      this.send(ws, {
-        type: 'room_state',
-        state: this.serializeGameState(),
-      });
+      this.send(ws, { type: 'room_state', state: this.serializeGameState() });
       
       // Notify others that player reconnected (without logs for efficiency)
-      this.broadcast({
-        type: 'room_state',
-        state: this.serializeGameState(false),
-      }, ws);
-      
+      this.broadcast({ type: 'room_state', state: this.serializeGameState(false) }, ws);
       return;
     }
 
-    // New player joining
-    // If game is in progress, allow joining as spectator
+    // New player joining - If game is in progress, allow joining as spectator
     if (this.gameState.phase !== 'waiting' && this.gameState.phase !== 'ended') {
-      // Join as spectator
       this.sessions.set(ws, `spectator_${message.playerId}`);
       ws.serializeAttachment(`spectator_${message.playerId}`);
-      
-      // Send current state to the spectator
-      this.send(ws, {
-        type: 'room_state',
-        state: this.serializeGameState(),
-      });
-      
-      this.send(ws, {
-        type: 'player_joined',
-        playerId: message.playerId,
-        playerName: message.playerName,
-      } as any);
-      
+      this.send(ws, { type: 'room_state', state: this.serializeGameState() });
+      this.send(ws, { type: 'player_joined', playerId: message.playerId, playerName: message.playerName } as any);
       return;
     }
     
     // Check if game has ended
     if (this.gameState.phase === 'ended') {
-      // Join as spectator for ended game
       this.sessions.set(ws, `spectator_${message.playerId}`);
       ws.serializeAttachment(`spectator_${message.playerId}`);
-      
-      this.send(ws, {
-        type: 'room_state',
-        state: this.serializeGameState(),
-      });
-      
+      this.send(ws, { type: 'room_state', state: this.serializeGameState() });
       return;
     }
 
@@ -362,16 +514,14 @@ export class GameRoom extends DurableObject<Env> {
     }
 
     // Add player
+    const initHealth = this.gameState.settings.initialHealth ?? 10;
     const player: Player = {
       id: message.playerId,
       name: message.playerName,
       avatar: message.avatar,
-      health: 10,
-      maxHealth: 10,
-      location: {
-        type: 'city',
-        cityId: message.playerId, // Each player starts in their own city
-      },
+      health: initHealth,
+      maxHealth: initHealth,
+      location: { type: 'city', cityId: message.playerId }, // Each player starts in their own city
       class: null,
       classOptions: null,
       inventory: [],
@@ -389,11 +539,8 @@ export class GameRoom extends DurableObject<Env> {
     await this.saveGameState();
     await this.updateRoomRegistry();
 
-    // Broadcast updated state to ALL players (including the new one)
-    this.broadcast({
-      type: 'room_state',
-      state: this.serializeGameState(),
-    });
+    // Broadcast updated state to ALL players
+    this.broadcast({ type: 'room_state', state: this.serializeGameState() });
   }
 
   private async handleSelectClass(ws: WebSocket, message: { playerId: string; selectedClass: PlayerClass }): Promise<void> {
@@ -449,7 +596,7 @@ export class GameRoom extends DurableObject<Env> {
       // Give next player their class options
       const nextPlayerId = playerIds[nextIndex];
       const nextPlayer = this.gameState.players.get(nextPlayerId)!;
-      nextPlayer.classOptions = getTwoRandomClasses();
+      nextPlayer.classOptions = getAvailableClasses(this.gameState, this.gameState.settings.classOptionsCount ?? 3);
       this.gameState.currentClassSelectionPlayerId = nextPlayerId;
       
       await this.saveGameState();
@@ -510,7 +657,12 @@ export class GameRoom extends DurableObject<Env> {
     // Start class selection phase with turn-based selection
     this.gameState.phase = 'class_selection';
     
-    // Get all players in order (deterministic)
+    // Randomize player order for the game (修改：随机打乱玩家顺序，之后顺序固定)
+    const playersEntry = Array.from(this.gameState.players.entries());
+    const shuffledPlayers = playersEntry.sort(() => Math.random() - 0.5);
+    this.gameState.players = new Map(shuffledPlayers);
+    
+    // Get all players in order (deterministic from now on)
     const playerIds = Array.from(this.gameState.players.keys());
     
     // First player starts selecting
@@ -519,7 +671,7 @@ export class GameRoom extends DurableObject<Env> {
     
     // Only give class options to the first player
     const firstPlayer = this.gameState.players.get(firstPlayerId)!;
-    firstPlayer.classOptions = getTwoRandomClasses();
+    firstPlayer.classOptions = getAvailableClasses(this.gameState, this.gameState.settings.classOptionsCount ?? 3);
     firstPlayer.isReady = false;
     
     // Clear class options for other players (they'll get them when it's their turn)
@@ -539,6 +691,26 @@ export class GameRoom extends DurableObject<Env> {
     });
   }
 
+  // 新增：处理外星人被动瞬移
+  private async handleAlienPassiveTeleportAction(player: Player, action: any): Promise<ActionResult> {
+    if (!this.gameState!.pendingAlienTeleports?.includes(player.id)) {
+      throw new Error('Not eligible for alien passive teleport');
+    }
+
+    // 如果前端传了 targetLocation 就移动，不传就当做主动放弃留在原地
+    if (action.targetLocation) {
+      player.location = action.targetLocation;
+    }
+    
+    // 将该外星人从等待列表中移除
+    this.gameState!.pendingAlienTeleports = this.gameState!.pendingAlienTeleports.filter(id => id !== player.id);
+    
+    return {
+      type: 'teleport',
+      location: action.targetLocation || player.location,
+    };
+  }
+
   private async handlePerformAction(ws: WebSocket, message: any): Promise<void> {
     if (!this.gameState || this.gameState.phase !== 'playing') {
       this.sendError(ws, 'Game not in progress');
@@ -547,21 +719,36 @@ export class GameRoom extends DurableObject<Env> {
 
     const { playerId, action } = message;
     
-    // Verify it's the player's turn
-    if (this.gameState.currentPlayerId !== playerId) {
+    // 定义免费行动：拿战利品 和 外星人被动
+    const isFreeAction = action.type === 'claim_loot' || action.type === 'alien_passive_teleport';
+    
+    // 非免费行动，必须检查是否是自己的回合
+    if (!isFreeAction && this.gameState.currentPlayerId !== playerId) {
       this.sendError(ws, 'Not your turn');
       return;
     }
 
     const player = this.gameState.players.get(playerId);
-    if (!player || !player.isAlive) {
+    // 注意：拿战利品时，人哪怕死了也能拿
+    if (!player || (!player.isAlive && action.type !== 'claim_loot')) {
       this.sendError(ws, 'Player not found or not alive');
       return;
     }
 
-    // Check if player has steps
-    if (player.stepsRemaining <= 0) {
-      this.sendError(ws, 'No steps remaining');
+    // 接下来计算步数
+    let stepCost = 1;
+    if (action.type === 'purchase') {
+      stepCost = getPurchaseCost(action.purchaseRight);
+    } else if (action.type === 'use_potion') {
+      stepCost = action.value || 1;
+    } else if (action.type === 'hug') {
+      stepCost = 2;
+    } else if (isFreeAction) {
+      stepCost = 0; // 免费行动不扣步数
+    }
+
+    if (!isFreeAction && player.stepsRemaining < stepCost) {
+      this.sendError(ws, `Not enough steps (Need ${stepCost})`);
       return;
     }
 
@@ -570,55 +757,29 @@ export class GameRoom extends DurableObject<Env> {
       let actionResult: ActionResult;
       
       switch (action.type) {
-        case 'move':
-          actionResult = await this.handleMoveAction(player, action);
-          break;
-        case 'purchase':
-          actionResult = await this.handlePurchaseAction(player, action);
-          break;
-        case 'attack_knife':
-        case 'attack_horse':
-        case 'shoot_arrow':
-        case 'punch':
-        case 'kick':
-          // These all return 'attack' type
-          if (action.type === 'attack_knife') {
-            actionResult = await this.handleAttackKnifeAction(player, action);
-          } else if (action.type === 'attack_horse') {
-            actionResult = await this.handleAttackHorseAction(player, action);
-          } else if (action.type === 'shoot_arrow') {
-            actionResult = await this.handleShootArrowAction(player, action);
-          } else if (action.type === 'punch') {
-            actionResult = await this.handlePunchAction(player, action);
-          } else {
-            actionResult = await this.handleKickAction(player, action);
-          }
-          break;
-        case 'rob':
-          actionResult = await this.handleRobAction(player, action);
-          break;
-        case 'use_potion':
-          actionResult = await this.handleUsePotionAction(player, action);
-          break;
-        case 'launch_rocket':
-          actionResult = await this.handleLaunchRocketAction(player, action);
-          break;
-        case 'place_bomb':
-          actionResult = await this.handlePlaceBombAction(player, action);
-          break;
-        case 'detonate_bomb':
-          actionResult = await this.handleDetonateBombAction(player, action);
-          break;
-        case 'teleport':
-          actionResult = await this.handleTeleportAction(player, action);
-          break;
-        case 'hug':
-          actionResult = await this.handleHugAction(player, action);
-          break;
+        case 'move': actionResult = await this.handleMoveAction(player, action); break;
+        case 'purchase': actionResult = await this.handlePurchaseAction(player, action); break;
+        case 'attack_knife': actionResult = await this.handleAttackKnifeAction(player, action); break;
+        case 'attack_horse': actionResult = await this.handleAttackHorseAction(player, action); break;
+        case 'shoot_arrow': actionResult = await this.handleShootArrowAction(player, action); break;
+        case 'punch': actionResult = await this.handlePunchAction(player, action); break;
+        case 'kick': actionResult = await this.handleKickAction(player, action); break;
+        case 'rob': actionResult = await this.handleRobAction(player, action); break;
+        case 'use_potion': actionResult = await this.handleUsePotionAction(player, action); break;
+        case 'launch_rocket': actionResult = await this.handleLaunchRocketAction(player, action); break;
+        case 'place_bomb': actionResult = await this.handlePlaceBombAction(player, action); break;
+        case 'detonate_bomb': actionResult = await this.handleDetonateBombAction(player, action); break;
+        case 'teleport': actionResult = await this.handleTeleportAction(player, action); break;
+        case 'hug': actionResult = await this.handleHugAction(player, action); break;
+        case 'claim_loot': actionResult = await this.handleClaimLootAction(player, action); break;
+        case 'alien_passive_teleport': actionResult = await this.handleAlienPassiveTeleportAction(player, action); break;
         default:
           this.sendError(ws, 'Unknown action type');
           return;
       }
+
+      // 如果是处理外星人瞬移 或 认领战利品，兼容原有的日志解析器，将类型映射过去
+      const logType = action.type === 'claim_loot' ? 'rob' : (action.type === 'alien_passive_teleport' ? 'teleport' : action.type);
 
       // Record action log with structured result
       const newLog: ActionLog = {
@@ -626,7 +787,7 @@ export class GameRoom extends DurableObject<Env> {
         turn: this.gameState.currentTurn,
         playerId: player.id,
         playerName: player.name,
-        type: action.type,
+        type: logType,
         actionResult,
         timestamp: Date.now(),
       };
@@ -639,33 +800,73 @@ export class GameRoom extends DurableObject<Env> {
       }
 
       // Broadcast new log incrementally (separate from state)
-      this.broadcast({
-        type: 'new_action_logs',
-        logs: [newLog],
-      });
+      this.broadcast({ type: 'new_action_logs', logs: [newLog] });
 
-      // Deduct step
-      player.stepsRemaining--;
+      // 扣除步数
+      if (!isFreeAction) {
+        player.stepsRemaining -= stepCost;
+      }
+
+      // 核心：如果该外星人瞬移完成，且队列中没有其他外星人等待了，执行被冻结的回合结算！
+      if (action.type === 'alien_passive_teleport' && this.gameState.pendingAlienTeleports.length === 0) {
+         await this.executeRoundEndSequence();
+      } 
+      // 常规检查回合是否结束
+      else if (!isFreeAction && player.stepsRemaining <= 0 && this.gameState.currentPlayerId === player.id) {
+         await this.nextTurn();
+      }
 
       // Save state immediately after action
       await this.saveGameState();
-
-      // Check if turn is over
-      if (player.stepsRemaining <= 0) {
-        await this.nextTurn();
-        // Save again after turn change
-        await this.saveGameState();
-      }
       
       // Broadcast updated state (without logs to save bandwidth)
-      this.broadcast({
-        type: 'room_state',
-        state: this.serializeGameState(false),
-      });
+      this.broadcast({ type: 'room_state', state: this.serializeGameState(false) });
     } catch (error: any) {
       console.error('Action failed:', error);
       this.sendError(ws, error.message || 'Action failed');
     }
+  }
+
+  private async handleClaimLootAction(player: Player, action: any): Promise<ActionResult> {
+    if (!this.gameState!.pendingLoots) this.gameState!.pendingLoots = [];
+
+    const pendingIndex = this.gameState!.pendingLoots.findIndex(
+      p => p.killerId === player.id && p.victimId === action.target
+    );
+
+    if (pendingIndex === -1) {
+      throw new Error('No pending loot found for this target');
+    }
+
+    const pendingLoot = this.gameState!.pendingLoots[pendingIndex];
+    let claimedItem = undefined;
+
+    // 如果选择了物品
+    if (action.item && pendingLoot.items.includes(action.item)) {
+      claimedItem = action.item;
+      player.inventory.push(claimedItem);
+
+      // 从死者的真实背包中抹除该物品
+      const victim = this.gameState!.players.get(pendingLoot.victimId);
+      if (victim) {
+        const itemIdx = victim.inventory.indexOf(claimedItem);
+        if (itemIdx !== -1) {
+          victim.inventory.splice(itemIdx, 1);
+        }
+      }
+    }
+
+    // 选择完毕或主动放弃后，将其移出队列
+    this.gameState!.pendingLoots.splice(pendingIndex, 1);
+
+    // 返回 rob 类型以完美兼容前端日志显示
+    return {
+      type: 'rob',
+      target: pendingLoot.victimId,
+      targetName: pendingLoot.victimName,
+      item: claimedItem,
+      success: !!claimedItem,
+    };
   }
 
   private async handleMoveAction(player: Player, action: any): Promise<ActionResult> {
@@ -737,6 +938,11 @@ export class GameRoom extends DurableObject<Env> {
       throw new Error('Target not at same location');
     }
 
+    // 职业限制 (修改：拳击手和武僧不能用刀)
+    if (['boxer', 'monk'].includes(player.class || '')) {
+      throw new Error('Your class cannot use knives');
+    }
+
     // Check has knife
     if (!player.inventory.includes('knife')) {
       throw new Error('You do not have a knife');
@@ -744,8 +950,17 @@ export class GameRoom extends DurableObject<Env> {
 
     // Calculate damage
     const knifeCount = player.inventory.filter(i => i === 'knife').length;
-    const shirtCount = target.inventory.filter(i => i === 'shirt').length;
-    const damage = Math.max(0, knifeCount - shirtCount + 1);
+    
+    // 计算防御 (修改：脂肪衣提供防御；拳击手/武僧不能用衣服防御)
+    let defense = 0;
+    if (!['boxer', 'monk'].includes(target.class || '')) {
+      defense += target.inventory.filter(i => i === 'shirt').length;
+    }
+    if (target.class === 'fatty' && target.inventory.includes('fat')) {
+      defense += 1; // 脂肪衣 +1 防御
+    }
+
+    const damage = Math.max(0, knifeCount - defense + 1);
 
     // Apply damage
     target.health = Math.max(0, target.health - damage);
@@ -787,6 +1002,11 @@ export class GameRoom extends DurableObject<Env> {
       throw new Error('Both must be in same city');
     }
 
+    // 职业限制 (修改：拳击手/武僧/外星人/胖子不能用马)
+    if (['boxer', 'monk', 'alien', 'fatty'].includes(player.class || '')) {
+      throw new Error('Your class cannot use horses');
+    }
+
     // Check has horse
     if (!player.inventory.includes('horse')) {
       throw new Error('You do not have a horse');
@@ -794,8 +1014,17 @@ export class GameRoom extends DurableObject<Env> {
 
     // Calculate damage
     const horseCount = player.inventory.filter(i => i === 'horse').length;
-    const shirtCount = target.inventory.filter(i => i === 'shirt').length;
-    const damage = Math.max(0, 2 + horseCount - shirtCount + 1);
+    
+    // 计算防御
+    let defense = 0;
+    if (!['boxer', 'monk'].includes(target.class || '')) {
+      defense += target.inventory.filter(i => i === 'shirt').length;
+    }
+    if (target.class === 'fatty' && target.inventory.includes('fat')) {
+      defense += 1;
+    }
+
+    const damage = Math.max(0, 2 + horseCount - defense + 1);
 
     // Apply damage
     target.health = Math.max(0, target.health - damage);
@@ -835,23 +1064,36 @@ export class GameRoom extends DurableObject<Env> {
       throw new Error('Target not at same location');
     }
 
+    // 过滤脂肪衣 (修改：fat不能被抢)
+    const lootableInventory = target.inventory.filter(item => item !== 'fat');
+
     // Check if target has items
-    if (target.inventory.length === 0) {
-      throw new Error('Target has no items');
+    if (lootableInventory.length === 0) {
+      throw new Error('Target has no robbable items');
     }
 
     let stolenItem: ItemType | undefined;
     
     // If specific item is specified, try to steal it
     if (action.item) {
+      if (action.item === 'fat') {
+        throw new Error('Cannot rob Fat Suit');
+      }
+      // 检查物品是否在可抢列表中
+      if (!lootableInventory.includes(action.item)) {
+         throw new Error('Item not found or not robbable');
+      }
+      
       const itemIndex = target.inventory.indexOf(action.item);
       if (itemIndex !== -1) {
         stolenItem = target.inventory.splice(itemIndex, 1)[0];
       }
     } else {
-      // If no specific item, steal random item
-      const randomIndex = Math.floor(Math.random() * target.inventory.length);
-      stolenItem = target.inventory.splice(randomIndex, 1)[0];
+      // If no specific item, steal random item from LOOTABLE list
+      const randomIndex = Math.floor(Math.random() * lootableInventory.length);
+      const targetItem = lootableInventory[randomIndex];
+      const realIndex = target.inventory.indexOf(targetItem);
+      stolenItem = target.inventory.splice(realIndex, 1)[0];
     }
     
     // Success if item was stolen
@@ -888,15 +1130,14 @@ export class GameRoom extends DurableObject<Env> {
       throw new Error('Potion value must be at least 1');
     }
 
-    // Add delayed effect
+    // Add delayed effect (修改：记录为下一轮结束时生效)
     this.gameState!.delayedEffects.push({
       id: crypto.randomUUID(),
       playerId: player.id,
       type: 'potion',
       targetLocation: action.targetLocation,
       value: action.value,
-      turnDelay: 1, // Trigger next turn
-      createdAtTurn: this.gameState!.currentTurn,
+      resolveAtRound: this.gameState!.currentTurn + 1, // 当前轮数+1，即下一轮所有人行动完毕后生效
     });
 
     return {
@@ -992,7 +1233,7 @@ export class GameRoom extends DurableObject<Env> {
     // Consume ammo
     player.inventory.splice(ammoIndex, 1);
 
-    // Add delayed effect
+    // Add delayed effect (修改：记录为下一轮结束时生效)
     const damage = 2 + launcherCount - 1;
     this.gameState!.delayedEffects.push({
       id: crypto.randomUUID(),
@@ -1000,8 +1241,7 @@ export class GameRoom extends DurableObject<Env> {
       type: 'rocket',
       targetLocation: action.targetLocation,
       value: damage,
-      turnDelay: 1, // Trigger next turn
-      createdAtTurn: this.gameState!.currentTurn,
+      resolveAtRound: this.gameState!.currentTurn + 1, // 当前轮数+1，即下一轮所有人行动完毕后生效
     });
 
     return {
@@ -1089,6 +1329,7 @@ export class GameRoom extends DurableObject<Env> {
   }
 
   // Boxer: Punch attack
+  // Boxer: Punch attack
   private async handlePunchAction(player: Player, action: any): Promise<ActionResult> {
     if (player.class !== 'boxer') {
       throw new Error('Only boxers can punch');
@@ -1109,20 +1350,23 @@ export class GameRoom extends DurableObject<Env> {
       throw new Error('Target not at same location');
     }
 
-    // Check has gloves
-    const bronzeCount = player.inventory.filter(i => i === 'bronze_glove').length;
-    const silverCount = player.inventory.filter(i => i === 'silver_glove').length;
-    const goldCount = player.inventory.filter(i => i === 'gold_glove').length;
-
-    if (bronzeCount + silverCount + goldCount === 0) {
-      throw new Error('You do not have any gloves');
+    // 需指定使用的拳套 (修改：必须指定拳套类型，伤害不叠加)
+    const gloveType = action.item;
+    if (!['bronze_glove', 'silver_glove', 'gold_glove'].includes(gloveType)) {
+      throw new Error('Must specify a glove to use');
     }
 
-    // Calculate damage (true damage)
+    if (!player.inventory.includes(gloveType)) {
+      throw new Error('You do not have this glove');
+    }
+
+    // Calculate damage (true damage, fixed value per glove type)
     let damage = 0;
-    damage += bronzeCount > 0 ? (1 + bronzeCount - 1) : 0;
-    damage += silverCount > 0 ? (2 + silverCount - 1) : 0;
-    damage += goldCount > 0 ? (3 + goldCount - 1) : 0;
+    switch (gloveType) {
+      case 'bronze_glove': damage = 1; break;
+      case 'silver_glove': damage = 2; break;
+      case 'gold_glove': damage = 3; break;
+    }
 
     target.health = Math.max(0, target.health - damage);
 
@@ -1156,35 +1400,47 @@ export class GameRoom extends DurableObject<Env> {
       throw new Error('Target not found or not alive');
     }
 
-    // Check has belts
-    const bronzeCount = player.inventory.filter(i => i === 'bronze_belt').length;
-    const silverCount = player.inventory.filter(i => i === 'silver_belt').length;
-    const goldCount = player.inventory.filter(i => i === 'gold_belt').length;
-
-    if (bronzeCount + silverCount + goldCount === 0) {
-      throw new Error('You do not have any belts');
+    // 需指定使用的腰带 (修改：必须指定腰带)
+    const beltType = action.item;
+    if (!['bronze_belt', 'silver_belt', 'gold_belt'].includes(beltType)) {
+      throw new Error('Must specify a belt to use');
     }
 
-    // Silver belt can attack from anywhere, bronze and gold require same location
-    const hasSilver = silverCount > 0;
+    if (!player.inventory.includes(beltType)) {
+      throw new Error('You do not have this belt');
+    }
+
+    // 范围校验 (修改：银腰带可远程)
     const isSameLocation = player.location.type === target.location.type && 
                            player.location.cityId === target.location.cityId;
-
-    if (!hasSilver && !isSameLocation) {
-      throw new Error('Target not at same location (need silver belt for ranged attack)');
+    
+    // Silver belt: same location OR adjacent
+    if (beltType === 'silver_belt') {
+       const isAdjacent = (player.location.type === 'central' && target.location.type === 'city') ||
+                          (player.location.type === 'city' && target.location.type === 'central');
+       if (!isSameLocation && !isAdjacent) {
+         throw new Error('Target out of range (Silver belt hits adjacent)');
+       }
+    } else {
+       // Bronze/Gold: must be same location
+       if (!isSameLocation) {
+         throw new Error('Target must be at same location');
+       }
     }
 
-    // Calculate damage (true damage)
+    // Calculate damage (true damage, fixed value)
     let damage = 0;
-    damage += bronzeCount > 0 ? (1 + bronzeCount - 1) : 0;
-    damage += silverCount > 0 ? (1 + silverCount - 1) : 0;
-    damage += goldCount > 0 ? (2 + goldCount - 1) : 0;
+    switch (beltType) {
+      case 'bronze_belt': damage = 1; break;
+      case 'silver_belt': damage = 1; break;
+      case 'gold_belt': damage = 2; break;
+    }
 
     target.health = Math.max(0, target.health - damage);
 
-    // Force move (1 step away)
+    // Force move (修改：中央->回家，城池->中央)
     const newLocation = target.location.type === 'central'
-      ? { type: 'city' as const, cityId: Array.from(this.gameState!.players.values()).filter(p => p.isAlive)[Math.floor(Math.random() * this.gameState!.players.size)].id }
+      ? { type: 'city' as const, cityId: target.id } // Kick back to their own city
       : { type: 'central' as const };
     
     target.location = newLocation;
@@ -1253,16 +1509,18 @@ export class GameRoom extends DurableObject<Env> {
       throw new Error('Target not at same location');
     }
 
-    // Move both players (costs 2 steps total, already deducted 1, need to deduct 1 more)
-    if (player.stepsRemaining < 1) {
-      throw new Error('Not enough steps (hug costs 2 steps total)');
+    // 移动限制 (修改：只能移动到相邻位置)
+    const isTargetLocAdjacent = (player.location.type === 'central' && action.targetLocation.type === 'city') ||
+                                (player.location.type === 'city' && action.targetLocation.type === 'central');
+    
+    if (!isTargetLocAdjacent) {
+      throw new Error('Can only hug-move to adjacent location');
     }
+
+    // Cost (2 steps) is deducted in handlePerformAction
 
     player.location = action.targetLocation;
     target.location = action.targetLocation;
-
-    // Deduct extra step
-    player.stepsRemaining--;
 
     return {
       type: 'hug',
@@ -1272,120 +1530,104 @@ export class GameRoom extends DurableObject<Env> {
     };
   }
 
-  private async handlePlayerDeath(killer: Player, victim: Player): Promise<void> {
-    // Record death time
+  private async handlePlayerDeath(killer: Player | null, victim: Player): Promise<void> {
+    victim.isAlive = false;
+    victim.health = 0;
     victim.deathTime = Date.now();
+    victim.stepsRemaining = 0; // 死者清空步数
     
-    // Killer can take 0 or 1 item (including purchase rights)
-    // Combine inventory and purchase rights for loot selection
-    const allLootableItems = [...victim.inventory, ...victim.purchaseRights];
-    
-    if (allLootableItems.length > 0 && Math.random() > 0.5) {
-      const randomIndex = Math.floor(Math.random() * allLootableItems.length);
-      const lootedItem = allLootableItems[randomIndex];
-      
-      // Check if it's from inventory or purchase rights
-      const invIndex = victim.inventory.indexOf(lootedItem as ItemType);
-      if (invIndex !== -1) {
-        // It's an inventory item
-        victim.inventory.splice(invIndex, 1);
-        killer.inventory.push(lootedItem as ItemType);
-      } else {
-        // It's a purchase right
-        const rightIndex = victim.purchaseRights.indexOf(lootedItem as PurchaseRightType);
-        if (rightIndex !== -1) {
-          victim.purchaseRights.splice(rightIndex, 1);
-          killer.purchaseRights.push(lootedItem as PurchaseRightType);
-        }
+    const aliveCount = Array.from(this.gameState!.players.values()).filter(p => p.isAlive).length;
+    victim.rank = aliveCount + 1;
+
+    if (!this.gameState!.pendingLoots) {
+      this.gameState!.pendingLoots = [];
+    }
+
+    // 修改：不再随机自动抢夺，而是生成一条待处理战利品，等待击杀者手动选择
+    if (killer && killer.id !== victim.id && killer.isAlive) {
+      const lootable = victim.inventory.filter(i => i !== 'fat');
+      if (lootable.length > 0) {
+        this.gameState!.pendingLoots.push({
+          id: crypto.randomUUID(),
+          killerId: killer.id,
+          victimId: victim.id,
+          victimName: victim.name,
+          items: lootable
+        });
       }
     }
-    
-    // Destroy remaining items and purchase rights
-    victim.inventory = [];
-    victim.purchaseRights = [];
 
-    // Check win condition
-    const alivePlayers = Array.from(this.gameState!.players.values()).filter(p => p.isAlive);
-    
-    if (alivePlayers.length === 1) {
-      // Game ended - calculate final rankings
+    if (aliveCount <= 1) {
       this.gameState!.phase = 'ended';
-      
-      // Calculate ranks based on death time (later death = better rank)
-      const allPlayers = Array.from(this.gameState!.players.values());
-      const deadPlayers = allPlayers.filter(p => !p.isAlive && p.deathTime).sort((a, b) => b.deathTime! - a.deathTime!);
-      
-      // Winner gets rank 1
-      alivePlayers[0].rank = 1;
-      
-      // Assign ranks to dead players (most recent death = rank 2, etc.)
-      deadPlayers.forEach((player, index) => {
-        player.rank = index + 2;
-      });
-      
-      this.broadcast({
-        type: 'game_ended',
-        winnerId: alivePlayers[0].id,
-        reason: 'Last player standing',
-      });
-    } else {
-      // Game continues - assign temporary rank based on current death order
-      const allPlayers = Array.from(this.gameState!.players.values());
-      const deadPlayers = allPlayers.filter(p => !p.isAlive && p.deathTime).sort((a, b) => b.deathTime! - a.deathTime!);
-      
-      // Dead players get ranks counting from the end
-      deadPlayers.forEach((player, index) => {
-        player.rank = allPlayers.length - index;
-      });
+      if (aliveCount === 1) {
+        const winner = Array.from(this.gameState!.players.values()).find(p => p.isAlive);
+        if (winner) winner.rank = 1;
+      }
     }
   }
 
+  // 修改：处理回合切换与外星人拦截
   private async nextTurn(): Promise<void> {
     if (!this.gameState) return;
 
-    const newLogs: ActionLog[] = [];
-
-    // Process delayed effects for the turn that just ended
-    const effectLogs = await this.processDelayedEffects();
-    newLogs.push(...effectLogs);
-
-    // Get alive players
     const alivePlayers = Array.from(this.gameState.players.values()).filter(p => p.isAlive);
-    
-    if (alivePlayers.length <= 1) {
-      return; // Game should have ended
-    }
+    if (alivePlayers.length <= 1) return; // 游戏已经结束
 
-    // Find next player
     const currentIndex = alivePlayers.findIndex(p => p.id === this.gameState!.currentPlayerId);
     const nextIndex = (currentIndex + 1) % alivePlayers.length;
-    const nextPlayer = alivePlayers[nextIndex];
 
-    // If we wrapped around to first player, start new round
     if (nextIndex === 0) {
-      this.gameState.currentTurn++;
-      // Distribute steps for the new round
-      this.distributeSteps(alivePlayers);
+      // 一轮结束！检查外星人被动 (拥有至少2个UFO)
+      const aliens = alivePlayers.filter(p => p.class === 'alien' && p.inventory.filter(i => i === 'ufo').length >= 2);
       
-      // Check for Alien passive (2 UFOs = free teleport at round end)
-      const passiveLogs = await this.processAlienPassive();
-      newLogs.push(...passiveLogs);
+      if (aliens.length > 0) {
+         if (!this.gameState.pendingAlienTeleports) this.gameState.pendingAlienTeleports = [];
+         this.gameState.pendingAlienTeleports = aliens.map(a => a.id);
+         this.gameState.currentPlayerId = null; // 暂时挂起正常行动
+         
+         // 广播状态，前端此时会弹出外星人选择框
+         this.broadcast({ type: 'room_state', state: this.serializeGameState(false) });
+         return; // 停在这里，等待前端响应
+      }
+      
+      // 没有满足条件的外星人，直接执行回合末结算
+      await this.executeRoundEndSequence();
+    } else {
+      // 正常传递给下一个人
+      const nextPlayer = alivePlayers[nextIndex];
+      this.gameState.currentPlayerId = nextPlayer.id;
+      this.broadcast({ type: 'turn_start', playerId: nextPlayer.id, steps: nextPlayer.stepsRemaining });
+    }
+  }
+
+  // 新增：封装回合末尾的统一结算逻辑（延时技能、分配步数）
+  private async executeRoundEndSequence(): Promise<void> {
+    if (!this.gameState) return;
+
+    // 1. 结算延时效果 (并广播战报)
+    const effectLogs = await this.processDelayedEffects();
+    if (effectLogs.length > 0) {
+      this.broadcast({ type: 'new_action_logs', logs: effectLogs });
     }
 
-    // Broadcast new logs if any
-    if (newLogs.length > 0) {
-      this.broadcast({
-        type: 'new_action_logs',
-        logs: newLogs,
-      });
+    // 2. 检查延时效果是否导致了游戏结束
+    const alivePlayersAfterEffects = Array.from(this.gameState.players.values()).filter(p => p.isAlive);
+    if (this.gameState.phase === 'ended' || alivePlayersAfterEffects.length <= 1) {
+      return;
     }
 
-    this.gameState.currentPlayerId = nextPlayer.id;
+    // 3. 进入下一轮
+    this.gameState.currentTurn++;
+    this.distributeSteps(alivePlayersAfterEffects);
+    
+    // 重新获取第一个存活的玩家 (因为之前的首位可能被延时技能炸死)
+    const firstAlive = alivePlayersAfterEffects[0];
+    this.gameState.currentPlayerId = firstAlive.id;
 
     this.broadcast({
       type: 'turn_start',
-      playerId: nextPlayer.id,
-      steps: nextPlayer.stepsRemaining,
+      playerId: firstAlive.id,
+      steps: firstAlive.stepsRemaining,
     });
   }
 
@@ -1395,8 +1637,10 @@ export class GameRoom extends DurableObject<Env> {
 
     const newLogs: ActionLog[] = [];
     const currentTurn = this.gameState.currentTurn;
+    
+    // 修改：只处理那些设定为【在当前轮数或之前】生效的效果
     const effectsToProcess = this.gameState.delayedEffects.filter(
-      effect => currentTurn - effect.createdAtTurn >= effect.turnDelay
+      effect => effect.resolveAtRound <= currentTurn
     );
 
     for (const effect of effectsToProcess) {
@@ -1423,14 +1667,13 @@ export class GameRoom extends DurableObject<Env> {
             playerId: effect.playerId,
             playerName: this.gameState.players.get(effect.playerId)?.name || 'Unknown',
             type: 'use_potion',
-            target: target.id,
-            targetName: target.name,
-            targetLocation: {
-              ...effect.targetLocation,
-              cityName: locationOwner?.name,
+            actionResult: {
+              type: 'potion_heal',
+              target: target.id,
+              targetName: target.name,
+              location: effect.targetLocation,
+              healed: target.health - oldHealth
             },
-            result: `Healed ${target.health - oldHealth} HP`,
-            healed: target.health - oldHealth,
             timestamp: Date.now(),
           };
           
@@ -1466,14 +1709,14 @@ export class GameRoom extends DurableObject<Env> {
             playerId: effect.playerId,
             playerName: this.gameState.players.get(effect.playerId)?.name || 'Unknown',
             type: 'launch_rocket',
-            target: target.id,
-            targetName: target.name,
-            targetLocation: {
-              ...effect.targetLocation,
-              cityName: locationOwner?.name,
+            actionResult: {
+              type: 'rocket_hit',
+              target: target.id,
+              targetName: target.name,
+              location: effect.targetLocation,
+              damage: effect.value,
+              killed: target.health <= 0
             },
-            result: `${effect.value} true damage${target.health <= 0 ? ' (killed)' : ''}`,
-            damage: effect.value,
             timestamp: Date.now(),
           };
           
@@ -1483,9 +1726,9 @@ export class GameRoom extends DurableObject<Env> {
       }
     }
 
-    // Remove processed effects
+    // 修改：将已经生效过的效果从数组中移除
     this.gameState.delayedEffects = this.gameState.delayedEffects.filter(
-      effect => currentTurn - effect.createdAtTurn < effect.turnDelay
+      effect => effect.resolveAtRound > currentTurn
     );
     
     return newLogs;
@@ -1547,12 +1790,17 @@ export class GameRoom extends DurableObject<Env> {
     this.gameState.phase = 'playing';
     this.gameState.currentTurn = 1;
     
-    // Select first player randomly
-    const playerIds = Array.from(this.gameState.players.keys());
-    this.gameState.currentPlayerId = playerIds[Math.floor(Math.random() * playerIds.length)];
+    // 修改点：游戏正式开始时，再次随机打乱玩家顺序
+    // 这样【行动顺序】不仅每局都不同，而且和【选职业顺序】也不会完全重合
+    const playersEntry = Array.from(this.gameState.players.entries());
+    const shuffledPlayers = playersEntry.sort(() => Math.random() - 0.5);
+    this.gameState.players = new Map(shuffledPlayers);
+
+    // 选定打乱后第一个活着的玩家作为初始行动者
+    const alivePlayers = Array.from(this.gameState.players.values()).filter(p => p.isAlive);
+    this.gameState.currentPlayerId = alivePlayers[0].id;
 
     // Distribute steps for all players
-    const alivePlayers = Array.from(this.gameState.players.values()).filter(p => p.isAlive);
     this.distributeSteps(alivePlayers);
 
     const stepPool = this.gameState.players.size;

@@ -22,11 +22,22 @@ export default {
     // API: Create room
     if (url.pathname === '/api/rooms' && request.method === 'POST') {
       const roomId = crypto.randomUUID();
-      
-      // Don't register the room immediately - it will be registered when the first player joins
-      // This ensures we have the actual host name instead of "unknown"
-      
       return Response.json({ roomId });
+    }
+
+    // API: Delete/Dismiss room (新增：从大厅解散房间)
+    if (url.pathname.startsWith('/api/rooms/') && request.method === 'DELETE') {
+      const roomId = url.pathname.split('/').pop();
+      if (roomId) {
+        const registryId = env.ROOM_REGISTRY.idFromName('global');
+        const registry = env.ROOM_REGISTRY.get(registryId);
+        // 调用 Registry 的 unregister 接口
+        await registry.fetch(new Request(url.origin + '/unregister', {
+          method: 'POST',
+          body: JSON.stringify({ roomId }),
+        }));
+        return Response.json({ success: true });
+      }
     }
 
     // WebSocket: Join room
@@ -36,11 +47,8 @@ export default {
         return new Response('Room ID required', { status: 400 });
       }
 
-      // Get or create Durable Object for this room
       const id = env.GAME_ROOM.idFromName(roomId);
       const stub = env.GAME_ROOM.get(id);
-
-      // Forward request to Durable Object
       return stub.fetch(request);
     }
 

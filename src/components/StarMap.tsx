@@ -1,13 +1,16 @@
 import { useTranslation } from 'react-i18next';
-import type { Player } from '../types/game';
+import type { Player, Bomb, DelayedEffect } from '../types/game';
 
 interface StarMapProps {
   players: Player[];
   onCityClick?: (cityId: string) => void;
   onCentralClick?: () => void;
-  currentPlayerId?: string;  // 当前用户的ID，用于标识自己的城池
-  currentTurnPlayerId?: string | null;  // 当前回合的玩家ID，用于高亮显示
+  currentPlayerId?: string;  
+  currentTurnPlayerId?: string | null; 
   highlightCities?: string[];
+  bombs?: Bomb[];
+  delayedEffects?: DelayedEffect[];
+  currentTurn?: number;
 }
 
 export function StarMap({ 
@@ -16,16 +19,18 @@ export function StarMap({
   onCentralClick,
   currentPlayerId,
   currentTurnPlayerId,
-  highlightCities = []
+  highlightCities = [],
+  bombs = [],
+  delayedEffects = [],
+  currentTurn = 0
 }: StarMapProps) {
   const { t } = useTranslation();
 
-  // 计算城池在圆周上的位置
   const getCityPosition = (index: number, total: number) => {
-    const angle = (index * 2 * Math.PI) / total - Math.PI / 2; // 从顶部开始
-    const radius = 180; // 圆的半径
-    const centerX = 250; // SVG 中心 X
-    const centerY = 250; // SVG 中心 Y
+    const angle = (index * 2 * Math.PI) / total - Math.PI / 2; 
+    const radius = 180; 
+    const centerX = 250; 
+    const centerY = 250; 
     
     return {
       x: centerX + radius * Math.cos(angle),
@@ -33,15 +38,60 @@ export function StarMap({
     };
   };
 
-  // 获取在某个位置的玩家
   const getPlayersAtLocation = (type: 'city' | 'central', cityId?: string) => {
     return players.filter(p => {
+      if (!p.isAlive) return false;
       if (type === 'central') {
         return p.location.type === 'central';
       } else {
         return p.location.type === 'city' && p.location.cityId === cityId;
       }
     });
+  };
+
+  const renderLocationIndicators = (type: 'city' | 'central', cityId?: string, startX: number = 250, startY: number = 250) => {
+    const locBombs = bombs.filter(b => b.location.type === type && b.location.cityId === cityId);
+    const locEffects = delayedEffects.filter(e => e.targetLocation.type === type && e.targetLocation.cityId === cityId);
+
+    if (locBombs.length === 0 && locEffects.length === 0) return null;
+
+    let currentY = startY;
+
+    return (
+      <g>
+        {locBombs.map((bomb) => {
+          const bomber = players.find(p => p.id === bomb.playerId)?.name || '未知';
+          // 修正：将文本中的地雷改为炸弹
+          const label = `💣 ${bomber}的炸弹 x${bomb.count}`;
+          currentY += 14;
+          return (
+            <text key={`bomb-${bomb.id}`} x={startX} y={currentY} textAnchor="middle" className="text-[11px] fill-orange-500 dark:fill-orange-400 font-bold">
+              {label}
+            </text>
+          );
+        })}
+        {locEffects.map((effect) => {
+          const caster = players.find(p => p.id === effect.playerId)?.name || '未知';
+          const resolveRound = (effect as any).resolveAtRound ?? (effect as any).createdAtTurn + (effect as any).turnDelay;
+          const turnsLeft = resolveRound - currentTurn;
+          const turnStr = turnsLeft <= 0 ? '本轮结束' : '下轮结束';
+
+          const isHeal = effect.type === 'potion';
+          const icon = isHeal ? '💚' : '🚀';
+          const colorClass = isHeal ? 'fill-green-600 dark:fill-green-400' : 'fill-red-600 dark:fill-red-400';
+          const actionStr = isHeal ? `+${effect.value}血` : `-${effect.value}血`;
+
+          const label = `${icon} ${caster}: ${actionStr} (${turnStr})`;
+          currentY += 14;
+
+          return (
+            <text key={`effect-${effect.id}`} x={startX} y={currentY} textAnchor="middle" className={`text-[11px] font-bold ${colorClass}`}>
+              {label}
+            </text>
+          );
+        })}
+      </g>
+    );
   };
 
   const centerX = 250;
@@ -56,10 +106,8 @@ export function StarMap({
         className="w-full h-auto"
         style={{ maxHeight: '500px' }}
       >
-        {/* 背景 */}
         <rect width="500" height="500" fill="transparent" />
 
-        {/* 绘制连接线（从中央到各城池）*/}
         {players.map((player, index) => {
           const pos = getCityPosition(index, players.length);
           return (
@@ -111,13 +159,13 @@ export function StarMap({
             {t('location.central')}
           </text>
 
-          {/* 中央的玩家头像 */}
+          {renderLocationIndicators('central', undefined, centerX, centerY + centralRadius + 15)}
+
           {getPlayersAtLocation('central').map((player, idx) => {
             const offsetX = (idx - (getPlayersAtLocation('central').length - 1) / 2) * 30;
             const isCurrentTurnPlayer = currentTurnPlayerId !== null && player.id === currentTurnPlayerId;
             return (
               <g key={`central-${player.id}`}>
-                {/* 高亮当前回合玩家 */}
                 {isCurrentTurnPlayer && (
                   <circle
                     cx={centerX + offsetX}
@@ -160,7 +208,6 @@ export function StarMap({
                     </text>
                   </>
                 )}
-                {/* 名字标签 */}
                 <text
                   x={centerX + offsetX}
                   y={centerY + 25}
@@ -184,7 +231,6 @@ export function StarMap({
 
           return (
             <g key={`city-${cityOwner.id}`}>
-              {/* 城池圆圈 */}
               <circle
                 cx={pos.x}
                 cy={pos.y}
@@ -217,7 +263,6 @@ export function StarMap({
                 />
               )}
 
-              {/* 城池名称 */}
               <text
                 x={pos.x}
                 y={pos.y - cityRadius - 5}
@@ -228,11 +273,11 @@ export function StarMap({
                 {isOwnCity && ` (${t('common.your')})`}
               </text>
 
-              {/* 城池中的玩家 */}
+              {renderLocationIndicators('city', cityOwner.id, pos.x, pos.y + cityRadius + 15)}
+
               {playersInCity.length > 0 && (
                 <g>
                   {playersInCity.map((player, idx) => {
-                    // 在城池内排列多个玩家
                     const angle = (idx * 2 * Math.PI) / playersInCity.length;
                     const offset = 15;
                     const playerX = pos.x + offset * Math.cos(angle);
@@ -241,7 +286,6 @@ export function StarMap({
 
                     return (
                       <g key={`city-player-${player.id}`}>
-                        {/* 高亮当前回合玩家 */}
                         {isCurrentTurnPlayer && (
                           <circle
                             cx={playerX}
@@ -284,17 +328,14 @@ export function StarMap({
                             </text>
                           </>
                         )}
-                        {/* 玩家名字 */}
-                        {playersInCity.length === 1 && (
-                          <text
-                            x={playerX}
-                            y={playerY + 25}
-                            textAnchor="middle"
-                            className="text-[10px] fill-current text-gray-900 dark:text-white"
-                          >
-                            {player.name.substring(0, 6)}
-                          </text>
-                        )}
+                        <text
+                          x={playerX}
+                          y={playerY + 25}
+                          textAnchor="middle"
+                          className="text-[10px] fill-current text-gray-900 dark:text-white"
+                        >
+                          {player.name.substring(0, 6)}
+                        </text>
                       </g>
                     );
                   })}
@@ -305,7 +346,6 @@ export function StarMap({
         })}
       </svg>
 
-      {/* 图例 */}
       <div className="mt-4 flex flex-wrap gap-4 justify-center text-sm">
         <div className="flex items-center gap-2">
           <div className="w-4 h-4 rounded-full bg-purple-500"></div>

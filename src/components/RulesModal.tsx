@@ -306,7 +306,7 @@ export function RulesModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                       <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-xl border border-gray-200 dark:border-gray-600">
                         <h4 className="font-bold text-lg mb-2 flex items-center gap-2">④ Bomber</h4>
                         <ul className="list-disc pl-5 space-y-1 text-sm">
-                          <li><strong>Gear:</strong> No special starting rights. Can buy 💣 Bombs (1 step).</li>
+                          <li><strong>Gear:</strong> No special starting rights. Bombs do not need to be purchased and can be used directly (unlimited uses).</li>
                           <li><strong>Action:</strong> 1 step to place a bomb at your feet; 1 step to instantly detonate ALL your placed bombs on the map.</li>
                           <li><strong>Damage:</strong> Deals 1 <strong>True Damage</strong> per bomb.</li>
                         </ul>
@@ -499,7 +499,7 @@ export function RulesModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                       <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-xl border border-gray-200 dark:border-gray-600">
                         <h4 className="font-bold text-lg mb-2 flex items-center gap-2">④ 爆破手 (Bomber)</h4>
                         <ul className="list-disc pl-5 space-y-1 text-sm">
-                          <li><strong>初始与购买：</strong> 开局无特殊购买权。可购买 💣 炸弹 (消耗1步)。</li>
+                          <li><strong>初始与购买：</strong> 开局无特殊购买权。炸弹无需购买，可直接使用（不限次数）。</li>
                           <li><strong>埋弹/引爆：</strong> 消耗 1步在脚下埋置炸弹；消耗 1步瞬间引爆全场所有自己放置的炸弹。</li>
                           <li><strong>伤害：</strong> 每颗炸弹造成 1 点<strong>真实伤害</strong>。</li>
                         </ul>

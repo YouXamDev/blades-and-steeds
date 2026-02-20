@@ -92,7 +92,7 @@ function getInitialPurchaseRights(playerClass: PlayerClass): PurchaseRightType[]
     case 'rocketeer':
       return ['knife', 'horse', 'rocket_launcher', 'rocket_ammo'];
     case 'bomber':
-      return ['knife', 'horse', 'bomb'];
+      return ['knife', 'horse'];
     case 'boxer':
       return ['bronze_glove', 'silver_glove', 'gold_glove'];
     case 'monk':
@@ -1254,15 +1254,6 @@ export class GameRoom extends DurableObject<Env> {
     if (player.class !== 'bomber') {
       throw new Error('Only bombers can place bombs');
     }
-
-    // Check has bomb item
-    const bombIndex = player.inventory.indexOf('bomb');
-    if (bombIndex === -1) {
-      throw new Error('You do not have bombs');
-    }
-
-    // Consume bomb
-    player.inventory.splice(bombIndex, 1);
 
     // Place bomb at current location, merging with existing bomb from same player if present
     const existingBomb = this.gameState!.bombs.find(

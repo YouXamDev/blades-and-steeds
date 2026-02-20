@@ -1264,13 +1264,22 @@ export class GameRoom extends DurableObject<Env> {
     // Consume bomb
     player.inventory.splice(bombIndex, 1);
 
-    // Place bomb at current location
-    this.gameState!.bombs.push({
-      id: crypto.randomUUID(),
-      playerId: player.id,
-      location: { ...player.location },
-      count: 1,
-    });
+    // Place bomb at current location, merging with existing bomb from same player if present
+    const existingBomb = this.gameState!.bombs.find(
+      b => b.playerId === player.id &&
+        b.location.type === player.location.type &&
+        b.location.cityId === player.location.cityId
+    );
+    if (existingBomb) {
+      existingBomb.count += 1;
+    } else {
+      this.gameState!.bombs.push({
+        id: crypto.randomUUID(),
+        playerId: player.id,
+        location: { ...player.location },
+        count: 1,
+      });
+    }
 
     return {
       type: 'place_bomb',

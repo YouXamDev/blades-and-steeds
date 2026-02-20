@@ -385,7 +385,7 @@ export function GameBoard({ currentPlayer, allPlayers, isMyTurn, currentTurnPlay
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     onClick={() => onAction({ type: 'place_bomb' })}
-                    disabled={!canMove || !currentPlayer.inventory.includes('bomb')}
+                    disabled={!canMove}
                     className="py-2 px-3 rounded bg-orange-500 hover:bg-orange-600 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white text-sm font-semibold cursor-pointer disabled:cursor-not-allowed"
                   >
                     <Bomb className="w-4 h-4 inline mr-1" />

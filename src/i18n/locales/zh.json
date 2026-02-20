@@ -177,7 +177,7 @@
     "launchedRocketToCity": "向 {{city}} 的城池发射了火箭",
     "launchedRocketToCentralWithDamage": "向中央发射了火箭，下回合造成 {{damage}} 点伤害",
     "launchedRocketToCityWithDamage": "向 {{city}} 的城池发射了火箭，下回合造成 {{damage}} 点伤害",
-    "rocketHit": "火箭在 {{location}} 击中了 {{target}}，造成 {{damage}} 点伤害{{killed}}",
+    "rocketHit": "火箭在 {{city}} 击中了 {{target}}，造成 {{damage}} 点伤害",
     "attackedWithDamage": "攻击了 {{target}}，造成 {{damage}} 点伤害{{killed}}",
     "killed": "（击杀）",
     "usedPotionToCentral": "使用药水移动到中央",

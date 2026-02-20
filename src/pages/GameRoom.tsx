@@ -22,6 +22,7 @@ export function GameRoom() {
   const pendingAlien = gameState?.phase === 'playing' && gameState.pendingAlienTeleports?.includes(getUserId());
   const pendingLoot = gameState?.phase === 'playing' && !pendingAlien && (gameState?.pendingLoots?.filter(p => p.killerId === getUserId()) || []).length > 0;
   const [isRulesOpen, setIsRulesOpen] = useState(false);
+  const [isActionPending, setIsActionPending] = useState(false);
   
   useEffect(() => {
     setIsModalHidden(false);
@@ -79,6 +80,7 @@ export function GameRoom() {
       const userId = getUserId();
       const player = processedState.players.get(userId);
       setCurrentPlayer(player || null);
+      setIsActionPending(false);
     } else if (lastMessage.type === 'new_action_logs') {
       if (lastMessage.logs) {
         setGameState(prevState => {
@@ -90,6 +92,7 @@ export function GameRoom() {
         });
       }
     } else if (lastMessage.type === 'error') {
+      setIsActionPending(false);
       alert(lastMessage.message);
     }
   }, [lastMessage, messageTimestamp]);
@@ -155,6 +158,7 @@ export function GameRoom() {
   };
 
   const handleAction = (action: Partial<GameAction>) => {
+    setIsActionPending(true);
     send({
       type: 'perform_action',
       playerId: getUserId(),
@@ -574,6 +578,7 @@ export function GameRoom() {
                   bombs={gameState.bombs}
                   delayedEffects={gameState.delayedEffects}
                   currentTurn={gameState.currentTurn}
+                  isActionPending={isActionPending}
                 />
               </div>
             </div>

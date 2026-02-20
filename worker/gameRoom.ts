@@ -440,6 +440,7 @@ export class GameRoom extends DurableObject<Env> {
       player.isReady = false;
       delete player.deathTime;
       delete player.rank;
+      delete player.deathOrder;
     }
 
     await this.saveGameState();
@@ -1534,8 +1535,10 @@ export class GameRoom extends DurableObject<Env> {
     }
 
     const aliveCount = Array.from(this.gameState!.players.values()).filter(p => p.isAlive).length;
+    const deadCount = this.gameState!.players.size - aliveCount;
 
     victim.rank = aliveCount + 1;
+    victim.deathOrder = deadCount;
 
     if (!this.gameState!.pendingLoots) {
       this.gameState!.pendingLoots = [];

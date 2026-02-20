@@ -124,6 +124,7 @@ export interface Player {
   isConnected: boolean; // Whether player is currently connected via WebSocket
   deathTime?: number; // Timestamp of death
   rank?: number; // Final rank (1 = winner, higher = died earlier)
+  deathOrder?: number; // Death order (1 = first to die, 2 = second, etc.)
 }
 
 // Bomb state (for Bomber)

@@ -292,6 +292,7 @@ export class GameRoom extends DurableObject<Env> {
         await this.handleReturnToRoom(ws, message);
         break;
       case 'update_settings': await this.handleUpdateSettings(ws, message); break;
+      case 'remove_player': await this.handleRemovePlayer(ws, message); break;
       default:
         this.sendError(ws, 'Unknown message type');
     }
@@ -312,6 +313,36 @@ export class GameRoom extends DurableObject<Env> {
     }
 
     await this.saveGameState();
+    this.broadcast({ type: 'room_state', state: this.serializeGameState() });
+  }
+
+  private async handleRemovePlayer(ws: WebSocket, message: { playerId: string; targetPlayerId: string }): Promise<void> {
+    if (!this.gameState || this.gameState.phase !== 'waiting') {
+      this.sendError(ws, 'Can only remove players in waiting phase');
+      return;
+    }
+    if (message.playerId !== this.gameState.hostId) {
+      this.sendError(ws, 'Only host can remove players');
+      return;
+    }
+    if (message.targetPlayerId === this.gameState.hostId) {
+      this.sendError(ws, 'Cannot remove the host');
+      return;
+    }
+
+    this.gameState.players.delete(message.targetPlayerId);
+
+    // Remove the target player's WebSocket session so they receive the updated state
+    for (const [targetWs, pid] of this.sessions.entries()) {
+      if (pid === message.targetPlayerId) {
+        this.sessions.delete(targetWs);
+        break;
+      }
+    }
+
+    await this.saveGameState();
+    await this.updateRoomRegistry();
+
     this.broadcast({ type: 'room_state', state: this.serializeGameState() });
   }
 

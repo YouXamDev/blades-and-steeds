@@ -7,6 +7,7 @@ import { useWebSocket } from '../hooks/useWebSocket';
 import { getUserId, getUserProfile } from '../utils/auth';
 import { PlayerList } from '../components/PlayerList';
 import { GameBoard } from '../components/GameBoard';
+import { StarMap } from '../components/StarMap';
 import { ActionLog } from '../components/ActionLog';
 import type { GameState, Player, PlayerClass, GameAction, ItemType, GameSettings } from '../types/game';
 
@@ -145,6 +146,14 @@ export function GameRoom() {
     }
   };
 
+  const handleRemovePlayer = (targetPlayerId: string) => {
+    send({
+      type: 'remove_player',
+      playerId: getUserId(),
+      targetPlayerId,
+    });
+  };
+
   const handleAction = (action: Partial<GameAction>) => {
     send({
       type: 'perform_action',
@@ -170,7 +179,18 @@ export function GameRoom() {
     );
   }
 
+  // If player was removed from the waiting room, navigate home
+  if (gameState.phase === 'waiting' && !currentPlayer) {
+    navigate('/');
+    return null;
+  }
+
   const isHost = gameState.hostId === getUserId();
+
+  // Helper: players sorted by turnOrder for the player list (map keeps original order)
+  const playersInTurnOrder: Player[] = gameState.turnOrder.length > 0
+    ? gameState.turnOrder.map(id => gameState.players.get(id)).filter((p): p is Player => !!p)
+    : Array.from(gameState.players.values());
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 relative">
@@ -325,7 +345,9 @@ export function GameRoom() {
 
               <PlayerList 
                 players={Array.from(gameState.players.values())} 
+                highlightPlayerId={getUserId()}
                 showStatus={false}
+                onRemovePlayer={isHost ? handleRemovePlayer : undefined}
               />
 
               <div className="mt-8 mb-6 bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6 border border-gray-200 dark:border-gray-600">
@@ -409,7 +431,7 @@ export function GameRoom() {
                   </p>
                   
                   <PlayerList 
-                    players={Array.from(gameState.players.values())}
+                    players={playersInTurnOrder}
                     highlightPlayerId={getUserId()}
                     showStatus={true}
                     compact={true}
@@ -442,7 +464,7 @@ export function GameRoom() {
                       {t('game.allPlayersStatus')}
                     </h4>
                     <PlayerList 
-                      players={Array.from(gameState.players.values())}
+                      players={playersInTurnOrder}
                       currentPlayerId={gameState.currentClassSelectionPlayerId}
                       highlightPlayerId={getUserId()}
                       showStatus={true}
@@ -464,7 +486,7 @@ export function GameRoom() {
                   </p>
                   
                   <PlayerList 
-                    players={Array.from(gameState.players.values())}
+                    players={playersInTurnOrder}
                     currentPlayerId={gameState.currentClassSelectionPlayerId}
                     highlightPlayerId={getUserId()}
                     showStatus={true}
@@ -483,7 +505,7 @@ export function GameRoom() {
                 {t('room.players')}
               </h3>
               <PlayerList 
-                players={Array.from(gameState.players.values())}
+                players={playersInTurnOrder}
                 currentPlayerId={gameState.currentPlayerId}
                 highlightPlayerId={getUserId()}
                 showStatus={false}
@@ -553,6 +575,46 @@ export function GameRoom() {
                   delayedEffects={gameState.delayedEffects}
                   currentTurn={gameState.currentTurn}
                 />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {gameState.phase === 'playing' && !currentPlayer && (
+          <div className="space-y-6">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6">
+              <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">
+                {t('room.players')} <span className="text-sm font-normal text-gray-500 dark:text-gray-400">{t('game.spectating')}</span>
+              </h3>
+              <PlayerList 
+                players={playersInTurnOrder}
+                currentPlayerId={gameState.currentPlayerId}
+                showStatus={false}
+                compact={true}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-1">
+                <ActionLog
+                  logs={gameState.actionLogs || []}
+                  currentPlayerId=""
+                  players={gameState.players}
+                />
+              </div>
+              <div className="lg:col-span-2">
+                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border-2 border-gray-200 dark:border-gray-700">
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 text-center">
+                    {t('game.map')} {t('game.spectating')}
+                  </h3>
+                  <StarMap
+                    players={Array.from(gameState.players.values())}
+                    currentTurnPlayerId={gameState.currentPlayerId}
+                    bombs={gameState.bombs}
+                    delayedEffects={gameState.delayedEffects}
+                    currentTurn={gameState.currentTurn}
+                  />
+                </div>
               </div>
             </div>
           </div>

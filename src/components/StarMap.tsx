@@ -60,9 +60,8 @@ export function StarMap({
     return (
       <g>
         {locBombs.map((bomb) => {
-          const bomber = players.find(p => p.id === bomb.playerId)?.name || '未知';
-          // 修正：将文本中的地雷改为炸弹
-          const label = `💣 ${bomber}的炸弹 x${bomb.count}`;
+          const bomber = players.find(p => p.id === bomb.playerId)?.name || t('game.unknown');
+          const label = t('game.bomberBomb', { player: bomber, count: bomb.count });
           currentY += 14;
           return (
             <text key={`bomb-${bomb.id}`} x={startX} y={currentY} textAnchor="middle" className="text-[11px] fill-orange-500 dark:fill-orange-400 font-bold">
@@ -71,15 +70,15 @@ export function StarMap({
           );
         })}
         {locEffects.map((effect) => {
-          const caster = players.find(p => p.id === effect.playerId)?.name || '未知';
+          const caster = players.find(p => p.id === effect.playerId)?.name || t('game.unknown');
           const resolveRound = (effect as any).resolveAtRound ?? (effect as any).createdAtTurn + (effect as any).turnDelay;
           const turnsLeft = resolveRound - currentTurn;
-          const turnStr = turnsLeft <= 0 ? '本轮结束' : '下轮结束';
+          const turnStr = turnsLeft <= 0 ? t('game.endOfThisTurn') : t('game.endOfNextTurn');
 
           const isHeal = effect.type === 'potion';
           const icon = isHeal ? '💚' : '🚀';
           const colorClass = isHeal ? 'fill-green-600 dark:fill-green-400' : 'fill-red-600 dark:fill-red-400';
-          const actionStr = isHeal ? `+${effect.value}血` : `-${effect.value}血`;
+          const actionStr = isHeal ? `+${effect.value} HP` : `-${effect.value} HP`;
 
           const label = `${icon} ${caster}: ${actionStr} (${turnStr})`;
           currentY += 14;

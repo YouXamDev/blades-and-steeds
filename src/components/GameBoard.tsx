@@ -33,13 +33,13 @@ export function GameBoard({ currentPlayer, allPlayers, isMyTurn, currentTurnPlay
     return (
       <div className="space-y-6">
         <div className="bg-gray-900 rounded-xl shadow-lg p-8 text-center border-2 border-red-900">
-          <h2 className="text-3xl font-bold text-red-500 mb-4">☠️ 你已阵亡 ☠️</h2>
-          <p className="text-gray-400 mb-6">进入观战模式，正在观看其他玩家的对决...</p>
+          <h2 className="text-3xl font-bold text-red-500 mb-4">{t('game.youDied')}</h2>
+          <p className="text-gray-400 mb-6">{t('game.spectatorDesc')}</p>
         </div>
         
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border-2 border-gray-200 dark:border-gray-700">
           <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 text-center">
-            {t('game.map')} (观战中)
+            {t('game.map')} {t('game.spectating')}
           </h3>
           <StarMap
             players={allPlayers}
@@ -52,7 +52,6 @@ export function GameBoard({ currentPlayer, allPlayers, isMyTurn, currentTurnPlay
       </div>
     );
   }
-
   const canMove = currentPlayer.stepsRemaining > 0;
   const canBuy = currentPlayer.location.type === 'city' && 
                  currentPlayer.location.cityId === currentPlayer.id && 
@@ -487,7 +486,6 @@ export function GameBoard({ currentPlayer, allPlayers, isMyTurn, currentTurnPlay
                           {player.name}
                         </p>
                         <div className="grid grid-cols-2 gap-2">
-                          {/* 从城池抱到中央 */}
                           {currentPlayer.location.type === 'city' && (
                             <button
                               onClick={() => onAction({ type: 'hug', target: player.id, targetLocation: { type: 'central' } })}
@@ -497,7 +495,6 @@ export function GameBoard({ currentPlayer, allPlayers, isMyTurn, currentTurnPlay
                               {t('ability.toBeCentral')}
                             </button>
                           )}
-                          {/* 修改：从中央抱到任何城池（移除 filter，因为所有人的城池都是合法目的地） */}
                           {currentPlayer.location.type === 'central' && allPlayers.map((p) => (
                             <button
                               key={p.id}
@@ -505,7 +502,7 @@ export function GameBoard({ currentPlayer, allPlayers, isMyTurn, currentTurnPlay
                               disabled={!canMove || currentPlayer.stepsRemaining < 2}
                               className="py-1 px-2 rounded bg-pink-500 hover:bg-pink-600 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white text-xs font-semibold truncate cursor-pointer disabled:cursor-not-allowed"
                             >
-                              {p.name} 的城池
+                              {p.name} {t('log.cityOf', { name: '' }).replace(p.name, '').trim()}
                             </button>
                           ))}
                         </div>

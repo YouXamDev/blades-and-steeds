@@ -180,7 +180,7 @@ export function GameRoom() {
           onClick={() => setIsModalHidden(false)}
           className="fixed bottom-8 right-8 z-[100] px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full shadow-2xl font-bold flex items-center gap-2 animate-bounce cursor-pointer"
         >
-          👆 回到选择面板
+          {t('game.backToPanel')}
         </button>
       )}
 
@@ -194,12 +194,12 @@ export function GameRoom() {
               onClick={() => setIsModalHidden(true)}
               className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 flex items-center gap-1 text-sm font-semibold cursor-pointer"
             >
-              <Eye className="w-4 h-4" /> 查看场上
+              <Eye className="w-4 h-4" /> {t('game.viewBoard')}
             </button>
 
-            <h2 className="text-2xl font-bold text-cyan-600 dark:text-cyan-400 mb-2 mt-4">🛸 外星人被动触发</h2>
+            <h2 className="text-2xl font-bold text-cyan-600 dark:text-cyan-400 mb-2 mt-4">{t('game.alienPassiveTitle')}</h2>
             <p className="text-gray-600 dark:text-gray-400 mb-6 font-medium">
-              本回合所有人已行动完毕。凭借双飞碟的能量，你在延时技能生效前可进行一次免费瞬移！请选择目标：
+              {t('game.alienPassiveDesc')}
             </p>
             
             <div className="grid grid-cols-2 gap-3 mb-6">
@@ -207,7 +207,7 @@ export function GameRoom() {
                 onClick={() => handleAction({ type: 'alien_passive_teleport', targetLocation: { type: 'central' } })}
                 className="py-2 px-3 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-semibold transition-colors shadow-md cursor-pointer"
               >
-                中央
+                {t('location.central')}
               </button>
               {Array.from(gameState.players.values()).filter(p => p.isAlive).map(p => (
                 <button
@@ -215,7 +215,7 @@ export function GameRoom() {
                   onClick={() => handleAction({ type: 'alien_passive_teleport', targetLocation: { type: 'city', cityId: p.id } })}
                   className="py-2 px-3 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-semibold transition-colors shadow-md truncate cursor-pointer"
                 >
-                  {p.name} 的城池
+                  {t('log.cityOf', { name: p.name })}
                 </button>
               ))}
             </div>
@@ -224,7 +224,7 @@ export function GameRoom() {
               onClick={() => handleAction({ type: 'alien_passive_teleport', targetLocation: currentPlayer?.location })}
               className="w-full py-2 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors cursor-pointer"
             >
-              放弃并留在原地
+              {t('game.stayHere')}
             </button>
           </div>
         </div>
@@ -240,14 +240,14 @@ export function GameRoom() {
               onClick={() => setIsModalHidden(true)}
               className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 flex items-center gap-1 text-sm font-semibold cursor-pointer"
             >
-              <Eye className="w-4 h-4" /> 查看场上
+              <Eye className="w-4 h-4" /> {t('game.viewBoard')}
             </button>
 
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2 mt-4">击杀奖励 🎁</h2>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2 mt-4">{t('game.killRewardTitle')}</h2>
             <p className="text-gray-600 dark:text-gray-400 mb-6">
-              你击杀了 <span className="font-bold text-red-500">
+              {t('game.killRewardPrefix')} <span className="font-bold text-red-500">
                 {gameState.pendingLoots.filter(p => p.killerId === getUserId())[0].victimName}
-              </span>！请选择一件战利品：
+              </span> {t('game.killRewardSuffix')}
             </p>
             
             <div className="grid grid-cols-2 gap-3 mb-6">
@@ -278,7 +278,7 @@ export function GameRoom() {
               })}
               className="w-full py-2 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors cursor-pointer"
             >
-              放弃战利品
+              {t('game.giveUpLoot')}
             </button>
           </div>
         </div>
@@ -330,12 +330,12 @@ export function GameRoom() {
               {/* 新增：房间设置面板 */}
               <div className="mt-8 mb-6 bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6 border border-gray-200 dark:border-gray-600">
                 <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                  ⚙️ 房间高级设置
+                  {t('room.advancedSettings')}
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                      玩家初始血量
+                      {t('room.initialHealth')}
                     </label>
                     {isHost ? (
                       <input
@@ -354,7 +354,7 @@ export function GameRoom() {
                   </div>
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                      每人可选职业数
+                      {t('room.classOptionsCount')}
                     </label>
                     {isHost ? (
                       <input
@@ -631,7 +631,7 @@ export function GameRoom() {
                   onClick={handleLeaveRoom}
                   className="w-full px-8 py-3 rounded-lg border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer"
                 >
-                  退出房间
+                  {t('room.leave')}
                 </button>
                 
                 {isHost && (

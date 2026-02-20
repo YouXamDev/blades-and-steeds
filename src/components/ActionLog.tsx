@@ -33,92 +33,73 @@ export function ActionLog({ logs, currentPlayerId, players }: ActionLogProps) {
     }
   };
 
-  // 彻底重写格式化函数，直接组装包含数值信息的详细中文战报
   const formatActionDescription = (log: ActionLogType) => {
     if (log.actionResult) {
       const result = log.actionResult;
       
+      const getCityName = (cityId?: string) => {
+        if (!cityId) return t('location.central');
+        const ownerName = players.get(cityId)?.name || t('game.unknown');
+        return t('log.cityOf', { name: ownerName });
+      };
+      
       switch (result.type) {
         case 'move':
-          if (result.location.type === 'central') {
-            return '移动到了 中央';
-          } else {
-            const cityOwner = players.get(result.location.cityId || '');
-            return `移动到了 ${cityOwner?.name || '?'} 的城池`;
-          }
+          return result.location.type === 'central' 
+            ? t('log.moveCentral') 
+            : t('log.moveCity', { city: getCityName(result.location.cityId) });
         
         case 'purchase':
-          return `购买了 ${t(`item.${result.item}`)}`;
+          return t('log.purchase', { item: t(`item.${result.item}`) });
         
         case 'rob':
-          if (result.success && result.item) {
-            return `从 ${result.targetName} 那里获得了 ${t(`item.${result.item}`)}`;
-          } else {
-            return `尝试抢夺 ${result.targetName} 但失败了`;
-          }
+          return result.success && result.item
+            ? t('log.robSuccess', { target: result.targetName, item: t(`item.${result.item}`) })
+            : t('log.robFail', { target: result.targetName });
         
-        case 'attack': {
-          const killedText = result.killed ? '，并将其击杀！' : '';
-          return `对 ${result.targetName} 发起攻击，造成了 ${result.damage} 点伤害${killedText}`;
-        }
+        case 'attack':
+          return result.killed
+            ? t('log.attackKilled', { target: result.targetName, damage: result.damage })
+            : t('log.attack', { target: result.targetName, damage: result.damage });
         
-        case 'launch_rocket': {
-          const locationOwner = result.location.cityId ? players.get(result.location.cityId)?.name : undefined;
-          const cityName = result.location.type === 'central' ? '中央' : `${locationOwner || '?'} 的城池`;
-          return `向 ${cityName} 发射了火箭（将造成 ${result.damage} 点伤害，下轮结束生效）`;
-        }
+        case 'launch_rocket':
+          return t('log.launchRocket', { city: getCityName(result.location.cityId), damage: result.damage });
         
-        case 'rocket_hit': {
-          const locationOwner = result.location.cityId ? players.get(result.location.cityId)?.name : undefined;
-          const locationName = result.location.type === 'central' ? '中央' : `${locationOwner || '?'} 的城池`;
-          const killedText = result.killed ? '，并将其击杀！' : '';
-          return `火箭命中了 ${locationName} 的 ${result.targetName}，造成了 ${result.damage} 点伤害${killedText}`;
-        }
+        case 'rocket_hit':
+          return result.killed
+            ? t('log.rocketHitKilled', { city: getCityName(result.location.cityId), target: result.targetName, damage: result.damage })
+            : t('log.rocketHit', { city: getCityName(result.location.cityId), target: result.targetName, damage: result.damage });
         
-        case 'use_potion': {
-          const locationOwner = result.location.cityId ? players.get(result.location.cityId)?.name : undefined;
-          const cityName = result.location.type === 'central' ? '中央' : `${locationOwner || '?'} 的城池`;
-          return `向 ${cityName} 投掷了恢复药水（将恢复 ${result.steps} 点生命，下轮结束生效）`;
-        }
+        case 'use_potion':
+          return t('log.usePotion', { city: getCityName(result.location.cityId), steps: result.steps });
         
-        case 'potion_heal': {
-          return `药水生效，为 ${result.targetName} 恢复了 ${result.healed} 点生命`;
-        }
+        case 'potion_heal':
+          return t('log.potionHeal', { target: result.targetName, healed: result.healed });
         
-        case 'place_bomb': {
-          const locationOwner = result.location.cityId ? players.get(result.location.cityId)?.name : undefined;
-          const cityName = result.location.type === 'central' ? '中央' : `${locationOwner || '?'} 的城池`;
-          return `在 ${cityName} 埋下了一颗炸弹`;
-        }
+        case 'place_bomb':
+          return t('log.placeBomb', { city: getCityName(result.location.cityId) });
         
         case 'detonate_bomb':
           if (result.victims.length === 0) {
-            return `引爆了炸弹，但没有炸到任何人`;
+            return t('log.detonateBombEmpty');
           } else {
-            const victimNames = result.victims.map(v => `${v.name} (-${v.damage}血${v.killed ? ', 阵亡' : ''})`).join(', ');
-            return `引爆了炸弹，炸到了: ${victimNames}`;
+            const victimNames = result.victims.map(v => `${v.name} (-${v.damage}HP${v.killed ? ' ☠️' : ''})`).join(', ');
+            return t('log.detonateBombHit', { victims: victimNames });
           }
         
-        case 'teleport': {
-          const locationOwner = result.location.cityId ? players.get(result.location.cityId)?.name : undefined;
-          const cityName = result.location.type === 'central' ? '中央' : `${locationOwner || '?'} 的城池`;
-          return `传送到了 ${cityName}`;
-        }
+        case 'teleport':
+          return t('log.teleport', { city: getCityName(result.location.cityId) });
         
-        case 'hug': {
-          const locationOwner = result.location.cityId ? players.get(result.location.cityId)?.name : undefined;
-          const cityName = result.location.type === 'central' ? '中央' : `${locationOwner || '?'} 的城池`;
-          return `抱着 ${result.targetName} 一起移动到了 ${cityName}`;
-        }
+        case 'hug':
+          return t('log.hug', { target: result.targetName, city: getCityName(result.location.cityId) });
       }
     }
-    
     return t(`action.${log.type}`);
   };
 
   const formatTimestamp = (timestamp: number) => {
     const date = new Date(timestamp);
-    return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   };
 
   return (

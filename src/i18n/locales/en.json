@@ -221,7 +221,7 @@
     "needUFO": "Need UFO",
     "vampirePassive": "Passive: Heal 1HP on knife attack",
     "noBombsPlaced": "No bombs placed",
-    "hugCost": "Costs 2 steps"
+    "hugCost": "Costs 1 steps"
   },
   "location": {
     "central": "Central",

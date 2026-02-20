@@ -222,7 +222,7 @@
     "needUFO": "需要UFO",
     "vampirePassive": "被动：刀攻击回复1HP",
     "noBombsPlaced": "没有已放置的炸弹",
-    "hugCost": "消耗2步"
+    "hugCost": "消耗1步"
   },
   "location": {
     "central": "中央",

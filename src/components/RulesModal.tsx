@@ -343,7 +343,7 @@ export function RulesModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                         <h4 className="font-bold text-lg mb-2 flex items-center gap-2">⑧ Fatty</h4>
                         <ul className="list-disc pl-5 space-y-1 text-sm">
                           <li><strong>Gear:</strong> Starts with exclusive [Fat] (Grants 1 Defense, cannot be stolen, destroyed upon death). <strong>Cannot use horses.</strong></li>
-                          <li><strong>Skill:</strong> Moving costs <strong>double steps (2 steps)</strong>, but you can forcibly drag one player from your current location to move with you to an adjacent location.</li>
+                          <li><strong>Skill:</strong> For <strong>1 step</strong>, you can forcibly drag one player from your current location to move with you to an adjacent location.</li>
                         </ul>
                       </div>
 
@@ -536,7 +536,7 @@ export function RulesModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                         <h4 className="font-bold text-lg mb-2 flex items-center gap-2">⑧ 胖子 (Fatty)</h4>
                         <ul className="list-disc pl-5 space-y-1 text-sm">
                           <li><strong>初始：</strong> 开局自带专属道具【脂肪衣】(提供 1 点减伤防御，不可被抢夺，死亡后自动销毁)。<strong>无法使用马。</strong></li>
-                          <li><strong>技能：</strong> 移动需要消耗 <strong>双倍步数(2步)</strong>，但可以强制拖拽当前位置的任意一人，与你一同移动到相邻位置。</li>
+                          <li><strong>技能：</strong> 消耗 <strong>1步</strong>，可强制拖拽当前位置的任意一人，与你一同移动到相邻位置。</li>
                         </ul>
                       </div>
 

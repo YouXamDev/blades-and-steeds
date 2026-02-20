@@ -708,22 +708,20 @@ export class GameRoom extends DurableObject<Env> {
     }
 
     const player = this.gameState.players.get(playerId);
-    // 注意：拿战利品时，人哪怕死了也能拿
     if (!player || (!player.isAlive && action.type !== 'claim_loot')) {
       this.sendError(ws, 'Player not found or not alive');
       return;
     }
 
-    // 接下来计算步数
     let stepCost = 1;
     if (action.type === 'purchase') {
       stepCost = getPurchaseCost(action.purchaseRight);
     } else if (action.type === 'use_potion') {
       stepCost = action.value || 1;
     } else if (action.type === 'hug') {
-      stepCost = 2;
+      stepCost = 1;
     } else if (isFreeAction) {
-      stepCost = 0; // 免费行动不扣步数
+      stepCost = 0;
     }
 
     if (!isFreeAction && player.stepsRemaining < stepCost) {
@@ -1470,7 +1468,6 @@ export class GameRoom extends DurableObject<Env> {
     };
   }
 
-  // Fatty: Hug (move with someone else)
   private async handleHugAction(player: Player, action: any): Promise<ActionResult> {
     if (player.class !== 'fatty') {
       throw new Error('Only Fatty can hug');
@@ -1489,21 +1486,17 @@ export class GameRoom extends DurableObject<Env> {
       throw new Error('Target not found or not alive');
     }
 
-    // Check same location
     if (player.location.type !== target.location.type || 
         player.location.cityId !== target.location.cityId) {
       throw new Error('Target not at same location');
     }
 
-    // 移动限制 (修改：只能移动到相邻位置)
     const isTargetLocAdjacent = (player.location.type === 'central' && action.targetLocation.type === 'city') ||
                                 (player.location.type === 'city' && action.targetLocation.type === 'central');
     
     if (!isTargetLocAdjacent) {
       throw new Error('Can only hug-move to adjacent location');
     }
-
-    // Cost (2 steps) is deducted in handlePerformAction
 
     player.location = action.targetLocation;
     target.location = action.targetLocation;

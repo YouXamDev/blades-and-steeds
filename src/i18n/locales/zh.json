@@ -112,7 +112,8 @@
     "backToPanel": "👆 回到选择面板",
     "forceEnd": "强制结束",
     "confirmForceEnd": "确定要强制结束当前游戏吗？",
-    "playAgain": "再来一局"
+    "playAgain": "再来一局",
+    "purchaseCost": "{{count}}步"
   },
   "class": {
     "mage": "法师",

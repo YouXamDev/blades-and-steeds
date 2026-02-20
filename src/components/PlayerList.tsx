@@ -124,8 +124,8 @@ export function PlayerList({
 
               {isDead && (
                 <p className="text-xs mt-1 text-gray-500 dark:text-gray-400 font-medium">
-                  {player.rank !== undefined
-                    ? t('game.deathRank', { rank: player.rank })
+                  {player.deathOrder !== undefined
+                    ? t('game.deathRank', { rank: player.deathOrder })
                     : t('game.fallen')}
                 </p>
               )}

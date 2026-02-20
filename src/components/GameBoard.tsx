@@ -73,6 +73,10 @@ export function GameBoard({ currentPlayer, allPlayers, isMyTurn, currentTurnPlay
                  currentPlayer.location.cityId === currentPlayer.id && 
                  currentPlayer.stepsRemaining > 0;
 
+  const canUseKnife = currentPlayer.class !== 'boxer' && currentPlayer.class !== 'monk';
+  const canUseHorse = currentPlayer.class !== 'boxer' && currentPlayer.class !== 'monk' &&
+                      currentPlayer.class !== 'alien' && currentPlayer.class !== 'fatty';
+
   const playersAtSameLocation = allPlayers.filter(p => 
     p.id !== currentPlayer.id &&
     p.isAlive &&
@@ -200,7 +204,7 @@ export function GameBoard({ currentPlayer, allPlayers, isMyTurn, currentTurnPlay
                     <div className="grid grid-cols-2 gap-2">
                       <button
                         onClick={() => handleAttackKnife(player.id)}
-                        disabled={!canMove || !currentPlayer.inventory.includes('knife')}
+                        disabled={!canMove || !currentPlayer.inventory.includes('knife') || !canUseKnife}
                         className="py-2 px-3 rounded bg-red-500 hover:bg-red-600 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white text-sm font-semibold transition-colors disabled:cursor-not-allowed cursor-pointer"
                       >
                         🗡️ {t('item.knife')}
@@ -208,7 +212,7 @@ export function GameBoard({ currentPlayer, allPlayers, isMyTurn, currentTurnPlay
                       {currentPlayer.location.type === 'city' && (
                         <button
                           onClick={() => handleAttackHorse(player.id)}
-                          disabled={!canMove || !currentPlayer.inventory.includes('horse')}
+                          disabled={!canMove || !currentPlayer.inventory.includes('horse') || !canUseHorse}
                           className="py-2 px-3 rounded bg-orange-500 hover:bg-orange-600 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white text-sm font-semibold transition-colors disabled:cursor-not-allowed cursor-pointer"
                         >
                           🐴 {t('item.horse')}

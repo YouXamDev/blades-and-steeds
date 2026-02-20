@@ -356,30 +356,22 @@ export class GameRoom extends DurableObject<Env> {
     });
   }
   
-  private async handleForceEndGame(ws: WebSocket, message: { playerId: string }): Promise<void> {
-    if (!this.gameState) return;
-    if (message.playerId !== this.gameState.hostId) {
-      this.sendError(ws, 'Only host can force end the game');
-      return;
-    }
-    if (this.gameState.phase === 'waiting' || this.gameState.phase === 'ended') {
-      this.sendError(ws, 'Game is not in progress');
-      return;
-    }
-
-    this.gameState.phase = 'ended';
+  private async handleForceEndGame(_ws: WebSocket, message: { playerId: string }): Promise<void> {
+    if (!this.gameState || message.playerId !== this.gameState.hostId) return;
     
-    // 标记当前状况为结束
+    this.gameState.phase = 'ended';
     const alivePlayers = Array.from(this.gameState.players.values()).filter(p => p.isAlive);
     
-    this.broadcast({
-      type: 'game_ended',
-      winnerId: alivePlayers.length === 1 ? alivePlayers[0].id : 'none',
-      reason: 'Host forced game to end',
+    this.broadcast({ 
+      type: 'game_ended', 
+      winnerId: alivePlayers.length === 1 ? alivePlayers[0].id : 'none', 
+      reason: 'Host forced game to end' 
     });
-
+    
     await this.saveGameState();
     await this.updateRoomRegistry();
+
+    this.broadcast({ type: 'room_state', state: this.serializeGameState(false) });
   }
 
   private async handleReturnToRoom(ws: WebSocket, message: { playerId: string }): Promise<void> {

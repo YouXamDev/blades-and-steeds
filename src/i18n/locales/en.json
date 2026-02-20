@@ -44,7 +44,10 @@
     "waiting": "Waiting for players...",
     "noPublicRooms": "No public rooms available",
     "ready": "Ready",
-    "startGame": "Start Game"
+    "startGame": "Start Game",
+    "advancedSettings": "⚙️ Advanced Settings",
+    "initialHealth": "Initial Health",
+    "classOptionsCount": "Class Options Count"
   },
   "game": {
     "phase": {
@@ -86,7 +89,23 @@
     "noPlayersHere": "No other players here",
     "purchaseRight": "Purchase Right (Blue Border)",
     "allPlayersStatus": "All Players Status",
-    "central": "Central"
+    "central": "Central",
+    "alienPassiveTitle": "🛸 Alien Passive",
+    "alienPassiveDesc": "All players have moved. With the power of your UFOs, you can teleport for free before delayed effects resolve! Choose target:",
+    "stayHere": "Stay Here",
+    "killRewardTitle": "Kill Reward 🎁",
+    "killRewardPrefix": "You killed",
+    "killRewardSuffix": "! Choose a loot:",
+    "giveUpLoot": "Give Up Loot",
+    "youDied": "☠️ YOU DIED ☠️",
+    "spectatorDesc": "Entering spectator mode. Watching other players...",
+    "spectating": "(Spectating)",
+    "bomberBomb": "💣 {{player}}'s Bomb x{{count}}",
+    "endOfThisTurn": "End of this turn",
+    "endOfNextTurn": "End of next turn",
+    "unknown": "Unknown",
+    "viewBoard": "View Board",
+    "backToPanel": "👆 Back to Panel"
   },
   "class": {
     "mage": "Mage",
@@ -134,7 +153,8 @@
     "kick": "Kick",
     "teleport": "Teleport",
     "hug": "Hug Move"
-  },  "log": {
+  },
+  "log": {
     "movedToCentral": "Moved to central",
     "movedToCity": "Moved to {{city}}'s city",
     "purchased": "Purchased {{item}}",
@@ -148,7 +168,7 @@
     "launchedRocketToCity": "Launched rocket to {{city}}'s city",
     "launchedRocketToCentralWithDamage": "Launched rocket to central, will deal {{damage}} true damage next turn",
     "launchedRocketToCityWithDamage": "Launched rocket to {{city}}'s city, will deal {{damage}} true damage next turn",
-    "rocketHit": "Rocket hit {{target}} at {{location}}, dealt {{damage}} true damage{{killed}}",
+    "rocketHit": "Rocket hit {{target}} at {{city}}, dealing {{damage}} damage",
     "usedPotionToCentral": "Used potion to move to central",
     "usedPotionToCity": "Used potion to move to {{city}}'s city",
     "potionHealed": "Potion healed {{target}} at {{location}} for {{healed}} HP",
@@ -158,8 +178,25 @@
     "huggedToCity": "Hugged {{target}} and moved to {{city}}'s city",
     "placedBomb": "Placed bomb at {{location}}",
     "detonatedBomb": "Detonated bombs: {{victims}}",
-    "detonatedBombNoVictims": "Detonated bombs, but hit no one"
-  },  "ability": {
+    "detonatedBombNoVictims": "Detonated bombs, but hit no one",
+    "cityOf": "{{name}}'s City",
+    "moveCentral": "Moved to Central",
+    "moveCity": "Moved to {{city}}",
+    "purchase": "Purchased {{item}}",
+    "robSuccess": "Robbed {{item}} from {{target}}",
+    "robFail": "Tried to rob {{target}} but failed",
+    "attack": "Attacked {{target}}, dealt {{damage}} damage",
+    "attackKilled": "Attacked {{target}}, dealt {{damage}} damage, and killed them!",
+    "launchRocket": "Launched a rocket at {{city}} (will deal {{damage}} damage, resolves next turn)",
+    "rocketHitKilled": "Rocket hit {{target}} at {{city}}, dealing {{damage}} damage, and killed them!",
+    "usePotion": "Threw a potion at {{city}} (will heal {{steps}} HP, resolves next turn)",
+    "placeBomb": "Placed a bomb at {{city}}",
+    "detonateBombEmpty": "Detonated bombs, but hit no one",
+    "detonateBombHit": "Detonated bombs, hitting: {{victims}}",
+    "teleport": "Teleported to {{city}}",
+    "hug": "Hugged {{target}} and moved to {{city}}"
+  },
+  "ability": {
     "potionSteps": "Potion Steps",
     "selectTarget": "Select Target",
     "selectLocation": "Select Location",

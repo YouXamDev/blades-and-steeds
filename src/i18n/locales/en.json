@@ -103,6 +103,8 @@
     "killRewardSuffix": "! Choose a loot:",
     "giveUpLoot": "Give Up Loot",
     "youDied": "☠️ YOU DIED ☠️",
+    "fallen": "☠️ Fallen",
+    "deathRank": "Fell #{{rank}}",
     "spectatorDesc": "Entering spectator mode. Watching other players...",
     "spectating": "(Spectating)",
     "bomberBomb": "💣 {{player}}'s Bomb x{{count}}",

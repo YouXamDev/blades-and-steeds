@@ -38,14 +38,6 @@ function getAllPlayerClasses(): PlayerClass[] {
   ];
 }
 
-// Helper to get three random different classes (修改：3选1)
-function getThreeRandomClasses(): [PlayerClass, PlayerClass, PlayerClass] {
-  const allClasses = getAllPlayerClasses();
-  const shuffled = [...allClasses].sort(() => Math.random() - 0.5);
-  return [shuffled[0], shuffled[1], shuffled[2]];
-}
-
-// 新增辅助函数：获取物品购买消耗步数 (修改：定义不同物品的购买步数)
 function getPurchaseCost(item: PurchaseRightType): number {
   switch (item) {
     case 'bow':
@@ -305,16 +297,14 @@ export class GameRoom extends DurableObject<Env> {
     }
   }
 
-  private async handleUpdateSettings(ws: WebSocket, message: any): Promise<void> {
+  private async handleUpdateSettings(_ws: WebSocket, message: any): Promise<void> {
     if (!this.gameState || message.playerId !== this.gameState.hostId || this.gameState.phase !== 'waiting') return;
     
     this.gameState.settings = { ...this.gameState.settings, ...message.settings };
     
-    // 边界值保护
     if (this.gameState.settings.initialHealth < 1) this.gameState.settings.initialHealth = 1;
     if (this.gameState.settings.classOptionsCount < 1) this.gameState.settings.classOptionsCount = 1;
 
-    // 即时同步：更新所有等待房间内玩家的血量
     const initHealth = this.gameState.settings.initialHealth;
     for (const player of this.gameState.players.values()) {
       player.health = initHealth;
@@ -333,14 +323,11 @@ export class GameRoom extends DurableObject<Env> {
     
     if (!player) return;
 
-    // 清理该玩家的 session
     this.sessions.delete(ws);
 
     if (this.gameState.phase === 'waiting') {
-      // 在等待阶段：彻底从房间删除该玩家
       this.gameState.players.delete(playerId);
       
-      // 如果退出的恰好是房主，则把房主权限移交给下一个人
       if (this.gameState.hostId === playerId) {
         const remainingPlayers = Array.from(this.gameState.players.keys());
         if (remainingPlayers.length > 0) {
@@ -348,14 +335,12 @@ export class GameRoom extends DurableObject<Env> {
         }
       }
     } else {
-      // 在游戏进行中退出：标记为离线直接死亡，让出回合
       player.isConnected = false;
       if (player.isAlive) {
         player.health = 0;
         player.isAlive = false;
         player.deathTime = Date.now();
         
-        // 如果恰好是他的回合，跳过当前回合
         if (this.gameState.currentPlayerId === playerId) {
           await this.nextTurn();
         }
@@ -365,7 +350,6 @@ export class GameRoom extends DurableObject<Env> {
     await this.saveGameState();
     await this.updateRoomRegistry();
 
-    // 广播更新给房间里的其他玩家
     this.broadcast({
       type: 'room_state',
       state: this.serializeGameState(false),
@@ -449,6 +433,7 @@ export class GameRoom extends DurableObject<Env> {
       const roomId = generateId();
       this.gameState = {
         roomId,
+        createdAt: Date.now(),
         phase: 'waiting',
         players: new Map(),
         currentTurn: 0,
@@ -458,40 +443,41 @@ export class GameRoom extends DurableObject<Env> {
         bombs: [],
         delayedEffects: [],
         actionLogs: [],
-        pendingLoots: [], // 新增：待认领的战利品队列
-        pendingAlienTeleports: [], // 新增：等待中的外星人瞬移（记录playerId）
-        settings: { minPlayers: 2, maxPlayers: 9, isPublic: this.roomIsPublic, initialHealth: 10, classOptionsCount: 3 },
+        pendingLoots: [], 
+        pendingAlienTeleports: [], 
+        settings: {
+          minPlayers: 2,
+          maxPlayers: 9,
+          isPublic: this.roomIsPublic,
+          initialHealth: 10,
+          classOptionsCount: 3
+        },
         hostId: message.playerId,
-      } as any; // 这里使用 as any 兼容原有部分未定义字段，防止TS报错
+      } as any;
     }
 
+    const state = this.gameState!;
+
     // Check if player already exists (reconnection)
-    const existingPlayer = this.gameState.players.get(message.playerId);
+    const existingPlayer = state.players.get(message.playerId);
     if (existingPlayer) {
-      // Reconnection - update the websocket session
       this.sessions.set(ws, message.playerId);
       ws.serializeAttachment(message.playerId);
       
-      // Mark player as connected
       existingPlayer.isConnected = true;
-      
-      // Update player info if provided
       if (message.playerName) existingPlayer.name = message.playerName;
       if (message.avatar !== undefined) existingPlayer.avatar = message.avatar;
       
       await this.saveGameState();
       await this.updateRoomRegistry();
       
-      // Send current state to the reconnecting player (with full logs)
       this.send(ws, { type: 'room_state', state: this.serializeGameState() });
-      
-      // Notify others that player reconnected (without logs for efficiency)
       this.broadcast({ type: 'room_state', state: this.serializeGameState(false) }, ws);
       return;
     }
 
-    // New player joining - If game is in progress, allow joining as spectator
-    if (this.gameState.phase !== 'waiting' && this.gameState.phase !== 'ended') {
+    // Spectator logic
+    if (state.phase !== 'waiting' && state.phase !== 'ended') {
       this.sessions.set(ws, `spectator_${message.playerId}`);
       ws.serializeAttachment(`spectator_${message.playerId}`);
       this.send(ws, { type: 'room_state', state: this.serializeGameState() });
@@ -499,29 +485,28 @@ export class GameRoom extends DurableObject<Env> {
       return;
     }
     
-    // Check if game has ended
-    if (this.gameState.phase === 'ended') {
+    if (state.phase === 'ended') {
       this.sessions.set(ws, `spectator_${message.playerId}`);
       ws.serializeAttachment(`spectator_${message.playerId}`);
       this.send(ws, { type: 'room_state', state: this.serializeGameState() });
       return;
     }
 
-    // Check if room is full (only for waiting phase)
-    if (this.gameState.players.size >= this.gameState.settings.maxPlayers) {
+    // Check if room is full
+    if (state.players.size >= state.settings.maxPlayers) {
       this.sendError(ws, 'Room is full');
       return;
     }
 
     // Add player
-    const initHealth = this.gameState.settings.initialHealth ?? 10;
+    const initHealth = state.settings.initialHealth ?? 10;
     const player: Player = {
       id: message.playerId,
       name: message.playerName,
       avatar: message.avatar,
       health: initHealth,
       maxHealth: initHealth,
-      location: { type: 'city', cityId: message.playerId }, // Each player starts in their own city
+      location: { type: 'city', cityId: message.playerId },
       class: null,
       classOptions: null,
       inventory: [],
@@ -532,14 +517,13 @@ export class GameRoom extends DurableObject<Env> {
       isConnected: true,
     };
 
-    this.gameState.players.set(message.playerId, player);
+    state.players.set(message.playerId, player);
     this.sessions.set(ws, message.playerId);
     ws.serializeAttachment(message.playerId);
 
     await this.saveGameState();
     await this.updateRoomRegistry();
 
-    // Broadcast updated state to ALL players
     this.broadcast({ type: 'room_state', state: this.serializeGameState() });
   }
 
@@ -1534,16 +1518,20 @@ export class GameRoom extends DurableObject<Env> {
     victim.isAlive = false;
     victim.health = 0;
     victim.deathTime = Date.now();
-    victim.stepsRemaining = 0; // 死者清空步数
-    
+    victim.stepsRemaining = 0;
+
+    if (this.gameState!.bombs) {
+      this.gameState!.bombs = this.gameState!.bombs.filter(b => b.playerId !== victim.id);
+    }
+
     const aliveCount = Array.from(this.gameState!.players.values()).filter(p => p.isAlive).length;
+
     victim.rank = aliveCount + 1;
 
     if (!this.gameState!.pendingLoots) {
       this.gameState!.pendingLoots = [];
     }
 
-    // 修改：不再随机自动抢夺，而是生成一条待处理战利品，等待击杀者手动选择
     if (killer && killer.id !== victim.id && killer.isAlive) {
       const lootable = victim.inventory.filter(i => i !== 'fat');
       if (lootable.length > 0) {
@@ -1559,58 +1547,58 @@ export class GameRoom extends DurableObject<Env> {
 
     if (aliveCount <= 1) {
       this.gameState!.phase = 'ended';
+      
       if (aliveCount === 1) {
         const winner = Array.from(this.gameState!.players.values()).find(p => p.isAlive);
         if (winner) winner.rank = 1;
+      } else if (aliveCount === 0) {
+        if (killer) {
+          killer.rank = 1;
+          if (victim.id !== killer.id) {
+             victim.rank = 2;
+          }
+        }
       }
     }
   }
 
-  // 修改：处理回合切换与外星人拦截
   private async nextTurn(): Promise<void> {
     if (!this.gameState) return;
 
     const alivePlayers = Array.from(this.gameState.players.values()).filter(p => p.isAlive);
-    if (alivePlayers.length <= 1) return; // 游戏已经结束
+    if (alivePlayers.length <= 1) return;
 
     const currentIndex = alivePlayers.findIndex(p => p.id === this.gameState!.currentPlayerId);
     const nextIndex = (currentIndex + 1) % alivePlayers.length;
 
     if (nextIndex === 0) {
-      // 一轮结束！检查外星人被动 (拥有至少2个UFO)
       const aliens = alivePlayers.filter(p => p.class === 'alien' && p.inventory.filter(i => i === 'ufo').length >= 2);
       
       if (aliens.length > 0) {
          if (!this.gameState.pendingAlienTeleports) this.gameState.pendingAlienTeleports = [];
          this.gameState.pendingAlienTeleports = aliens.map(a => a.id);
-         this.gameState.currentPlayerId = null; // 暂时挂起正常行动
+         this.gameState.currentPlayerId = null;
          
-         // 广播状态，前端此时会弹出外星人选择框
          this.broadcast({ type: 'room_state', state: this.serializeGameState(false) });
-         return; // 停在这里，等待前端响应
+         return;
       }
       
-      // 没有满足条件的外星人，直接执行回合末结算
       await this.executeRoundEndSequence();
     } else {
-      // 正常传递给下一个人
       const nextPlayer = alivePlayers[nextIndex];
       this.gameState.currentPlayerId = nextPlayer.id;
       this.broadcast({ type: 'turn_start', playerId: nextPlayer.id, steps: nextPlayer.stepsRemaining });
     }
   }
 
-  // 新增：封装回合末尾的统一结算逻辑（延时技能、分配步数）
   private async executeRoundEndSequence(): Promise<void> {
     if (!this.gameState) return;
 
-    // 1. 结算延时效果 (并广播战报)
     const effectLogs = await this.processDelayedEffects();
     if (effectLogs.length > 0) {
       this.broadcast({ type: 'new_action_logs', logs: effectLogs });
     }
 
-    // 2. 检查延时效果是否导致了游戏结束
     const alivePlayersAfterEffects = Array.from(this.gameState.players.values()).filter(p => p.isAlive);
     if (this.gameState.phase === 'ended' || alivePlayersAfterEffects.length <= 1) {
       return;
@@ -1620,7 +1608,6 @@ export class GameRoom extends DurableObject<Env> {
     this.gameState.currentTurn++;
     this.distributeSteps(alivePlayersAfterEffects);
     
-    // 重新获取第一个存活的玩家 (因为之前的首位可能被延时技能炸死)
     const firstAlive = alivePlayersAfterEffects[0];
     this.gameState.currentPlayerId = firstAlive.id;
 
@@ -1631,21 +1618,18 @@ export class GameRoom extends DurableObject<Env> {
     });
   }
 
-  // Process delayed effects (potions and rockets)
   private async processDelayedEffects(): Promise<ActionLog[]> {
     if (!this.gameState) return [];
 
     const newLogs: ActionLog[] = [];
     const currentTurn = this.gameState.currentTurn;
     
-    // 修改：只处理那些设定为【在当前轮数或之前】生效的效果
     const effectsToProcess = this.gameState.delayedEffects.filter(
       effect => effect.resolveAtRound <= currentTurn
     );
 
     for (const effect of effectsToProcess) {
       if (effect.type === 'potion') {
-        // Heal all players at location
         const targets = Array.from(this.gameState.players.values()).filter(p =>
           p.isAlive &&
           p.location.type === effect.targetLocation.type &&
@@ -1656,10 +1640,6 @@ export class GameRoom extends DurableObject<Env> {
           const healAmount = effect.value;
           const oldHealth = target.health;
           target.health = Math.min(target.maxHealth, target.health + healAmount);
-          
-          const locationOwner = effect.targetLocation.cityId 
-            ? this.gameState.players.get(effect.targetLocation.cityId) 
-            : undefined;
           
           const log: ActionLog = {
             id: crypto.randomUUID(),
@@ -1699,10 +1679,6 @@ export class GameRoom extends DurableObject<Env> {
             }
           }
           
-          const locationOwner = effect.targetLocation.cityId 
-            ? this.gameState.players.get(effect.targetLocation.cityId) 
-            : undefined;
-          
           const log: ActionLog = {
             id: crypto.randomUUID(),
             turn: currentTurn,
@@ -1734,41 +1710,6 @@ export class GameRoom extends DurableObject<Env> {
     return newLogs;
   }
 
-  // Check for Alien passive (2 UFOs = free teleport)
-  private async processAlienPassive(): Promise<ActionLog[]> {
-    if (!this.gameState) return [];
-
-    const newLogs: ActionLog[] = [];
-
-    for (const player of this.gameState.players.values()) {
-      if (player.isAlive && player.class === 'alien') {
-        const ufoCount = player.inventory.filter(i => i === 'ufo').length;
-        if (ufoCount >= 2) {
-          // For now, teleport to central (in real game, player should choose)
-          // This is a simplified implementation
-          if (player.location.type !== 'central') {
-            player.location = { type: 'central' };
-            
-            const log: ActionLog = {
-              id: crypto.randomUUID(),
-              turn: this.gameState.currentTurn,
-              playerId: player.id,
-              playerName: player.name,
-              type: 'teleport',
-              result: 'Free teleport to central (2 UFOs passive)',
-              timestamp: Date.now(),
-            };
-            
-            this.gameState.actionLogs.push(log);
-            newLogs.push(log);
-          }
-        }
-      }
-    }
-    
-    return newLogs;
-  }
-
   private distributeSteps(players: Player[]): void {
     // Reset all players to 1 step (base)
     for (const player of players) {
@@ -1790,8 +1731,6 @@ export class GameRoom extends DurableObject<Env> {
     this.gameState.phase = 'playing';
     this.gameState.currentTurn = 1;
     
-    // 修改点：游戏正式开始时，再次随机打乱玩家顺序
-    // 这样【行动顺序】不仅每局都不同，而且和【选职业顺序】也不会完全重合
     const playersEntry = Array.from(this.gameState.players.entries());
     const shuffledPlayers = playersEntry.sort(() => Math.random() - 0.5);
     this.gameState.players = new Map(shuffledPlayers);

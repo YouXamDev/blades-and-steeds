@@ -1,83 +1,58 @@
-# Blades and Steeds (《买刀买马》) 🗡️🐴
+# 买刀买马 (Blades and Steeds) 🗡️🐴
 
-《买刀买马》是一款支持 ≥2 人的强互动、异步与同步结合的回合制网页桌游。项目采用了纯 Serverless 的现代化架构，前端使用 React，后端采用 Cloudflare Workers (Durable Objects) 实现无缝的 WebSocket 状态同步。
+《买刀买马》是一款支持 2~8 人的强互动、异步与同步结合的回合制网页桌游。项目采用了纯 Serverless 的现代化架构，前端使用 React，后端采用 Cloudflare Workers (Durable Objects) 实现无缝的 WebSocket 状态同步。
 
-## 🛠 技术栈
+## 🛠 准备环境
 
-- **前端:** React 18, TypeScript, Vite, TailwindCSS, Lucide-React
-- **后端:** Cloudflare Workers, Durable Objects (用于房间状态持久化与 WebSocket 通信)
-- **包管理器:** pnpm
+在开始之前，请确保你的电脑上安装了以下软件：
+1. **Node.js** (推荐 v18 或更高版本)
+2. **pnpm** 包管理工具 (如果没有，请在终端执行: `npm install -g pnpm`)
+3. 一个免费的 **Cloudflare** 账号
 
-## 🚀 本地开发指南
+## 🚀 本地运行指南 (关键步骤)
 
-### 1. 环境准备
-在开始之前，请确保你的系统已安装以下环境：
-- [Node.js](https://nodejs.org/) (建议 v18 或更高版本)
-- [pnpm](https://pnpm.io/) (如果没有安装，请运行 `npm install -g pnpm`)
-- Cloudflare 账号 (用于部署和运行 Durable Objects)
+注意：由于本项目包含前端页面和后端服务器，你需要**同时打开两个终端窗口**来分别启动它们。
 
-### 2. 安装依赖
-克隆项目到本地后，在项目根目录运行：
+### 第一步：安装依赖
+使用终端进入项目根目录，执行以下命令安装所有需要的包：
 ```bash
 pnpm install
 ```
 
-### 3. 运行本地开发服务器
-由于项目包含前端 Vite 和后端 Cloudflare Worker，你需要打开两个终端窗口同时启动它们：
-
-**终端 A：启动后端 Worker (Wrangler)**
+### 第二步：启动后端服务 (终端 A)
+在第一个终端窗口中，执行以下命令启动 Cloudflare Worker 本地模拟环境：
 ```bash
-# 首次运行可能需要登录 Cloudflare 账号
-pnpm exec wrangler login
-
-# 启动本地 Worker 环境
 pnpm run start:worker
 ```
-*(默认情况下，后端会运行在 `http://127.0.0.1:8787`)*
+> **提示：**第一次运行该命令时，可能会自动打开浏览器要求你登录 Cloudflare 账号进行授权。登录成功后，你会看到终端提示运行在 `http://127.0.0.1:8787`，请保持此终端开启，不要关闭。
 
-**终端 B：启动前端 (Vite)**
+### 第三步：启动前端页面 (终端 B)
+打开一个全新的第二个终端窗口，同样进入项目根目录，执行：
 ```bash
 pnpm run dev
 ```
-*(前端启动后，通常会运行在 `http://localhost:5173`。Vite 已配置了 Proxy 代理，会将 `/api` 和 WebSocket 请求自动转发到后端的 8787 端口。)*
+> **提示：**启动成功后，终端会提示项目运行在 `http://localhost:5173`。Vite 代理会自动将游戏数据转发给后台。现在，用浏览器打开该本地地址，即可开始测试游戏！
 
 ## 📦 生产环境部署
 
-### 1. 部署后端 (Cloudflare Workers)
-项目使用 `wrangler.jsonc` 进行配置，核心的房间逻辑和注册中心位于 `worker/` 目录下。
+如果你想把游戏发布到公网让朋友一起玩，请按以下步骤操作：
+
+### 1. 部署后端 (Cloudflare)
+执行以下命令，将游戏逻辑与状态机一键发布到你的 Cloudflare Workers：
 ```bash
 pnpm run deploy:worker
 ```
-*(或者直接运行: `pnpm exec wrangler deploy`)*
 
-### 2. 部署前端 (静态托管)
-前端可以部署到 Cloudflare Pages、Vercel 或任何支持静态文件的托管服务上。
+### 2. 部署前端
+执行以下命令打包前端静态文件：
 ```bash
-# 构建生产环境的前端静态文件
 pnpm run build
 ```
-构建产物会生成在 `dist/` 目录中。如果你使用 Cloudflare Pages，可以直接关联 Github 仓库并设置构建命令为 `pnpm run build`，输出目录为 `dist`。
+打包完成后，产物会生成在 `dist/` 目录中。你可以将该目录直接托管至 Cloudflare Pages、Vercel 等任何静态网站托管平台。
 
-## 📁 核心目录结构
+## 📁 核心目录结构指南
 
-```text
-blades-and-steeds/
-├── src/                  # React 前端代码
-│   ├── components/       # UI 组件 (地图渲染、玩家列表、动作日志等)
-│   ├── pages/            # 页面路由 (主页、房间页、设置页)
-│   ├── types/            # TypeScript 类型定义 (前后端共用)
-│   ├── hooks/            # 自定义 Hooks (如 useWebSocket)
-│   └── ...
-├── worker/               # Cloudflare Workers 后端代码
-│   ├── index.ts          # API 路由入口 & WebSocket 升级握手
-│   ├── gameRoom.ts       # Durable Object: 核心游戏逻辑和状态机
-│   └── roomRegistry.ts   # Durable Object: 全局房间大厅注册表
-├── game/                 # 设计文档与素材 (Python 规则生成脚本、图标等)
-├── vite.config.ts        # 前端构建与代理配置
-└── wrangler.jsonc        # Cloudflare 部署配置
-```
-
-## 🎮 游戏特性
-- ⚡ **WebSocket 实时通信：** 动作日志、血量变化、物品抢夺实现低延迟同步。
-- 🛡 **Durable Objects 状态持久化：** 玩家意外掉线可随时重连，房间状态不丢失。
-- 🧩 **高扩展性类型设计：** 新增职业、新武器只需在 `types/game.ts` 和 `gameRoom.ts` 中添加对应分支即可快速实现。
+- `src/` : 所有的 React 前端代码 (UI组件、页面路由、类型定义)
+- `worker/` : 所有的 后端代码 (包含路由入口、核心游戏状态机 gameRoom)
+- `RULES.md` : 游戏的详细规则设计文档
+- `wrangler.jsonc` : Cloudflare 后端部署相关的配置文件

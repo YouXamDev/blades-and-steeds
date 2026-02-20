@@ -7,7 +7,7 @@ import { getUserId, getUserProfile } from '../utils/auth';
 import { PlayerList } from '../components/PlayerList';
 import { GameBoard } from '../components/GameBoard';
 import { ActionLog } from '../components/ActionLog';
-import type { GameState, Player, PlayerClass, GameAction, ItemType } from '../types/game';
+import type { GameState, Player, PlayerClass, GameAction, ItemType, GameSettings } from '../types/game';
 
 export function GameRoom() {
   const { roomId } = useParams<{ roomId: string }>();

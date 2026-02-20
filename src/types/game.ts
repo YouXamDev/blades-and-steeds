@@ -230,6 +230,8 @@ export interface GameState {
   stepPool: number;
   pendingLoots: PendingLoot[];
   pendingAlienTeleports: string[];
+  createdAt: number;
+  updatedAt?: number;
 }
 
 // WebSocket message types
@@ -379,6 +381,7 @@ export interface UserProfile {
 export interface RoomListItem {
   id: string;
   name: string;
+  hostId: string;
   hostName: string;
   playerCount: number;
   maxPlayers: number;

@@ -62,6 +62,11 @@ export function ActionLog({ logs, currentPlayerId, players }: ActionLogProps) {
             ? t('log.attackKilled', { target: result.targetName, damage: result.damage })
             : t('log.attack', { target: result.targetName, damage: result.damage });
         
+        case 'shoot_arrow':
+          return result.killed
+            ? t('log.shootArrowKilled', { target: result.targetName, damage: result.damage })
+            : t('log.shootArrow', { target: result.targetName, damage: result.damage });
+        
         case 'launch_rocket':
           return t('log.launchRocket', { city: getCityName(result.location.cityId), damage: result.damage });
         

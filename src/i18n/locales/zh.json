@@ -169,6 +169,8 @@
     "robbedFailed": "试图抢夺 {{target}} 但失败了",
     "attacked": "攻击了 {{target}}（{{result}}）",
     "attackedTarget": "攻击了 {{target}}",
+    "shootArrow": "射中了 {{target}}，造成了 {{damage}} 点伤害",
+    "shootArrowKilled": "射中了 {{target}}，造成了 {{damage}} 点伤害，并将其击杀！",
     "launchedRocketToCentral": "向中央发射了火箭",
     "launchedRocketToCity": "向 {{city}} 的城池发射了火箭",
     "launchedRocketToCentralWithDamage": "向中央发射了火箭，下回合造成 {{damage}} 点伤害",

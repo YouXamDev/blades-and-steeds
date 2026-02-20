@@ -156,6 +156,7 @@ export type ActionResult =
   | { type: 'purchase'; item: PurchaseRightType }
   | { type: 'rob'; target: string; targetName: string; item?: ItemType; success: boolean }
   | { type: 'attack'; target: string; targetName: string; damage: number; killed: boolean }
+  | { type: 'shoot_arrow'; target: string; targetName: string; damage: number; killed: boolean } // <--- 新增这一行
   | { type: 'launch_rocket'; location: { type: LocationType; cityId?: string }; damage: number }
   | { type: 'rocket_hit'; target: string; targetName: string; location: { type: LocationType; cityId?: string }; damage: number; killed: boolean }
   | { type: 'use_potion'; location: { type: LocationType; cityId?: string }; steps: number }

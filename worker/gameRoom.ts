@@ -633,10 +633,13 @@ export class GameRoom extends DurableObject<Env> {
     // Start class selection phase with turn-based selection
     this.gameState.phase = 'class_selection';
     
-    // Randomize player order for the game (修改：随机打乱玩家顺序，之后顺序固定)
+    // Randomize player order for the game (使用标准 Fisher-Yates 洗牌算法，确保绝对随机)
     const playersEntry = Array.from(this.gameState.players.entries());
-    const shuffledPlayers = playersEntry.sort(() => Math.random() - 0.5);
-    this.gameState.players = new Map(shuffledPlayers);
+    for (let i = playersEntry.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [playersEntry[i], playersEntry[j]] = [playersEntry[j], playersEntry[i]];
+    }
+    this.gameState.players = new Map(playersEntry);
     
     // Get all players in order (deterministic from now on)
     const playerIds = Array.from(this.gameState.players.keys());
@@ -1163,9 +1166,16 @@ export class GameRoom extends DurableObject<Env> {
       throw new Error('Target out of range');
     }
 
-    // Calculate damage
-    const shirtCount = target.inventory.filter(i => i === 'shirt').length;
-    const damage = Math.max(0, 1 + bowCount - 1 - shirtCount + 1);
+    // 计算防御（修复：引入完整的防具判定）
+    let defense = 0;
+    if (!['boxer', 'monk'].includes(target.class || '')) {
+      defense += target.inventory.filter(i => i === 'shirt').length;
+    }
+    if (target.class === 'fatty' && target.inventory.includes('fat')) {
+      defense += 1;
+    }
+
+    const damage = Math.max(0, 1 + bowCount - 1 - defense + 1);
 
     target.health = Math.max(0, target.health - damage);
 
@@ -1176,7 +1186,7 @@ export class GameRoom extends DurableObject<Env> {
     }
 
     return {
-      type: 'attack',
+      type: 'shoot_arrow', // 修复：使用专门的射箭日志类型
       target: target.id,
       targetName: target.name,
       damage,
@@ -1723,11 +1733,9 @@ export class GameRoom extends DurableObject<Env> {
     this.gameState.phase = 'playing';
     this.gameState.currentTurn = 1;
     
-    const playersEntry = Array.from(this.gameState.players.entries());
-    const shuffledPlayers = playersEntry.sort(() => Math.random() - 0.5);
-    this.gameState.players = new Map(shuffledPlayers);
+    // （已移除这里的第二次错误洗牌逻辑，保持和选职业时一样的完美随机顺序）
 
-    // 选定打乱后第一个活着的玩家作为初始行动者
+    // 选定当前活着的第一个玩家作为初始行动者
     const alivePlayers = Array.from(this.gameState.players.values()).filter(p => p.isAlive);
     this.gameState.currentPlayerId = alivePlayers[0].id;
 
@@ -1740,7 +1748,6 @@ export class GameRoom extends DurableObject<Env> {
     await this.saveGameState();
 
     // Broadcast updated game state to all players (without logs)
-    // This single broadcast contains all information including phase, current player, and steps
     this.broadcast({
       type: 'room_state',
       state: this.serializeGameState(false),

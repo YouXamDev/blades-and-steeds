@@ -170,6 +170,8 @@
     "attacked": "Attacked {{target}} ({{result}})",
     "attackedTarget": "Attacked {{target}}",
     "attackedWithDamage": "Attacked {{target}}, dealt {{damage}} damage{{killed}}",
+    "shootArrow": "shot {{target}}, dealing {{damage}} damage",
+    "shootArrowKilled": "shot {{target}}, dealing {{damage}} damage, and killed them!",
     "killed": " (killed)",
     "launchedRocketToCentral": "Launched rocket to central",
     "launchedRocketToCity": "Launched rocket to {{city}}'s city",

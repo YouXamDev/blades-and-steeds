@@ -9,6 +9,7 @@ interface PlayerListProps {
   showStatus?: boolean;
   compact?: boolean;
   onRemovePlayer?: (playerId: string) => void;
+  pendingPlayerIds?: string[];
 }
 
 export function PlayerList({ 
@@ -18,13 +19,14 @@ export function PlayerList({
   showStatus = false,
   compact = false,
   onRemovePlayer,
+  pendingPlayerIds,
 }: PlayerListProps) {
   const { t } = useTranslation();
 
   return (
     <div className={`grid ${compact ? 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4'}`}>
       {players.map((player, index) => {
-        const isCurrentTurn = currentPlayerId === player.id;
+        const isCurrentTurn = currentPlayerId === player.id || (pendingPlayerIds?.includes(player.id) ?? false);
         const isHighlighted = highlightPlayerId === player.id;
         const isDead = player.isAlive === false;
         

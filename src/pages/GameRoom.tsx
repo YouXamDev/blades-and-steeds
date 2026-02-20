@@ -514,6 +514,7 @@ export function GameRoom() {
                 highlightPlayerId={getUserId()}
                 showStatus={false}
                 compact={true}
+                pendingPlayerIds={gameState.pendingAlienTeleports}
               />
             </div>
 
@@ -596,6 +597,7 @@ export function GameRoom() {
                 currentPlayerId={gameState.currentPlayerId}
                 showStatus={false}
                 compact={true}
+                pendingPlayerIds={gameState.pendingAlienTeleports}
               />
             </div>
 

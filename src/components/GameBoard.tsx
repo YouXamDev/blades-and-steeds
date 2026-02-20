@@ -421,7 +421,7 @@ export function GameBoard({ currentPlayer, allPlayers, isMyTurn, currentTurnPlay
                     if (!hasGlove) return null;
                     return (
                       <div key={glove} className="border border-gray-200 dark:border-gray-700 rounded-lg p-2">
-                        <p className="text-sm font-semibold mb-2">{t(`item.${glove}`)}</p>
+                        <p className="text-sm font-semibold text-gray-900 dark:text-white mb-2">{t(`item.${glove}`)}</p>
                         <div className="grid grid-cols-2 gap-2">
                           {playersAtSameLocation.length > 0 ? playersAtSameLocation.map(player => (
                             <button
@@ -454,7 +454,7 @@ export function GameBoard({ currentPlayer, allPlayers, isMyTurn, currentTurnPlay
 
                     return (
                       <div key={belt} className="border border-gray-200 dark:border-gray-700 rounded-lg p-2">
-                        <p className="text-sm font-semibold mb-2">{t(`item.${belt}`)}</p>
+                        <p className="text-sm font-semibold text-gray-900 dark:text-white mb-2">{t(`item.${belt}`)}</p>
                         <div className="grid grid-cols-2 gap-2">
                           {validTargets.length > 0 ? validTargets.map(player => (
                             <button

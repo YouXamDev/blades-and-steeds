@@ -553,7 +553,6 @@ export function RulesModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =
               )}
             </div>
           )}
-
         </div>
       </div>
     </div>

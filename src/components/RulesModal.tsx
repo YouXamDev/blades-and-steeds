@@ -214,7 +214,7 @@ export function RulesModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                               <tr>
                                 <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 font-semibold">Purchase</td>
                                 <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-purple-500">1 step + Right</td>
-                                <td className="border border-gray-300 dark:border-gray-600 px-3 py-2"><strong>Only allowed in [Your Own City].</strong> Consume 1 step and the corresponding purchase right to get the physical item. Consumables (arrows, ammo, bombs) do not consume the right.</td>
+                                <td className="border border-gray-300 dark:border-gray-600 px-3 py-2"><strong>Only allowed in [Your Own City].</strong> Consume 1 step and the corresponding purchase right to get the physical item. Consumables (arrows, ammo) do not consume the right.</td>
                               </tr>
                               <tr>
                                 <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 font-semibold">Rob</td>
@@ -407,7 +407,7 @@ export function RulesModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                               <tr>
                                 <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 font-semibold">购买</td>
                                 <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-purple-500">1步+购买权</td>
-                                <td className="border border-gray-300 dark:border-gray-600 px-3 py-2"><strong>仅限在【自己的城池】内进行。</strong>消耗 1步和对应物品的购买权，获得实体物品（箭矢、弹药、炸弹为消耗品，购买后购买权不消失）。</td>
+                                <td className="border border-gray-300 dark:border-gray-600 px-3 py-2"><strong>仅限在【自己的城池】内进行。</strong>消耗 1步和对应物品的购买权，获得实体物品（箭矢、弹药为消耗品，购买后购买权不消失）。</td>
                               </tr>
                               <tr>
                                 <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 font-semibold">抢夺</td>

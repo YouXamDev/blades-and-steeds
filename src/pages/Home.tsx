@@ -1,15 +1,17 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Users, Plus, Settings as SettingsIcon, Trash2 } from 'lucide-react';
+import { Users, Plus, Settings as SettingsIcon, Trash2, BookOpen } from 'lucide-react';
 import { getUserProfile, getUserId } from '../utils/auth';
 import type { RoomListItem } from '../types/game';
+import { RulesModal } from '../components/RulesModal';
 
 export function Home() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [rooms, setRooms] = useState<RoomListItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isRulesOpen, setIsRulesOpen] = useState(false);
 
   useEffect(() => {
     document.title = t('app.title');
@@ -68,6 +70,7 @@ export function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
       <div className="container mx-auto px-4 py-8">
+        
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
@@ -75,12 +78,22 @@ export function Home() {
             </h1>
             <p className="text-gray-600 dark:text-gray-400">{t('app.tagline')}</p>
           </div>
-          <button
-            onClick={() => navigate('/settings')}
-            className="p-3 rounded-lg bg-white dark:bg-gray-800 shadow-lg hover:shadow-xl transition-shadow text-gray-900 dark:text-gray-100 cursor-pointer"
-          >
-            <SettingsIcon className="w-6 h-6" />
-          </button>
+          
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsRulesOpen(true)}
+              className="p-3 rounded-lg bg-white dark:bg-gray-800 shadow-lg hover:shadow-xl transition-shadow text-blue-600 dark:text-blue-400 cursor-pointer flex items-center gap-2 font-semibold"
+            >
+              <BookOpen className="w-6 h-6" />
+              <span className="hidden sm:inline">{t('app.rules')}</span>
+            </button>
+            <button
+              onClick={() => navigate('/settings')}
+              className="p-3 rounded-lg bg-white dark:bg-gray-800 shadow-lg hover:shadow-xl transition-shadow text-gray-900 dark:text-gray-100 cursor-pointer"
+            >
+              <SettingsIcon className="w-6 h-6" />
+            </button>
+          </div>
         </div>
 
         <button
@@ -150,6 +163,9 @@ export function Home() {
           )}
         </div>
       </div>
+
+      {/* 挂载独立的规则弹窗组件 */}
+      <RulesModal isOpen={isRulesOpen} onClose={() => setIsRulesOpen(false)} />
     </div>
   );
 }

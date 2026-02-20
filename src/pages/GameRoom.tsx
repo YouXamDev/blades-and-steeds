@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Users, Heart, Footprints, Power, RotateCcw, LogOut, Eye } from 'lucide-react'; 
+import { RulesModal } from '../components/RulesModal';
+import { Users, Heart, Footprints, Power, RotateCcw, LogOut, Eye, BookOpen } from 'lucide-react'; 
 import { useWebSocket } from '../hooks/useWebSocket';
 import { getUserId, getUserProfile } from '../utils/auth';
 import { PlayerList } from '../components/PlayerList';
@@ -16,10 +17,10 @@ export function GameRoom() {
   const { isConnected, lastMessage, messageTimestamp, send } = useWebSocket(roomId || null);
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
-
   const [isModalHidden, setIsModalHidden] = useState(false);
   const pendingAlien = gameState?.phase === 'playing' && gameState.pendingAlienTeleports?.includes(getUserId());
   const pendingLoot = gameState?.phase === 'playing' && !pendingAlien && (gameState?.pendingLoots?.filter(p => p.killerId === getUserId()) || []).length > 0;
+  const [isRulesOpen, setIsRulesOpen] = useState(false);
   
   useEffect(() => {
     setIsModalHidden(false);
@@ -288,6 +289,15 @@ export function GameRoom() {
           </button>
           
           <div className="flex items-center gap-4">
+            
+            <button
+              onClick={() => setIsRulesOpen(true)}
+              className="flex items-center gap-1 px-3 py-1.5 rounded text-blue-600 hover:bg-blue-100 dark:text-blue-400 dark:hover:bg-blue-900/30 transition-colors text-sm font-semibold cursor-pointer"
+            >
+              <BookOpen className="w-4 h-4" />
+              <span className="hidden sm:inline">{t('app.rules', '游戏规则')}</span>
+            </button>
+
             <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
               <Users className="w-5 h-5" />
               <span>{gameState.players.size}/{gameState.settings.maxPlayers}</span>
@@ -635,6 +645,7 @@ export function GameRoom() {
           </div>
         )}
       </div>
+      <RulesModal isOpen={isRulesOpen} onClose={() => setIsRulesOpen(false)} />
     </div>
   );
 }

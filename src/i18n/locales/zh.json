@@ -1,7 +1,8 @@
 {
   "app": {
     "title": "买刀买马",
-    "tagline": ""
+    "tagline": "",
+    "rules": "游戏规则"
   },
   "common": {
     "loading": "加载中...",

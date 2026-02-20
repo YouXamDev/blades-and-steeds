@@ -1,7 +1,8 @@
 {
   "app": {
     "title": "Blades & Steeds",
-    "tagline": ""
+    "tagline": "",
+    "rules": "Game Rules"
   },
   "common": {
     "loading": "Loading...",

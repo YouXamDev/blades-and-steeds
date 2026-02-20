@@ -26,7 +26,7 @@ pnpm dev
 
 ## 📦 生产环境部署
 
-如果你想把游戏发布到公网让朋友一起玩，执行以下命令即可一键构建并部署前后端：
+本项目仅支持部署到 **Cloudflare**（前端使用 Cloudflare Pages，后端使用 Cloudflare Workers）。如果你想把游戏发布到公网让朋友一起玩，执行以下命令即可一键构建并部署到 Cloudflare：
 ```bash
 pnpm deploy
 ```

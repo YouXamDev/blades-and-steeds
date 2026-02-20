@@ -1594,13 +1594,26 @@ export class GameRoom extends DurableObject<Env> {
       this.broadcast({ type: 'new_action_logs', logs: effectLogs });
     }
 
-    const alivePlayersAfterEffects = Array.from(this.gameState.players.values()).filter(p => p.isAlive);
+    let alivePlayersAfterEffects = Array.from(this.gameState.players.values()).filter(p => p.isAlive);
     if (this.gameState.phase === 'ended' || alivePlayersAfterEffects.length <= 1) {
       return;
     }
 
     // 3. 进入下一轮
     this.gameState.currentTurn++;
+
+    // === 新增：每轮开始前重新洗牌，确保每回合玩家行动顺序完全随机 ===
+    const playersEntry = Array.from(this.gameState.players.entries());
+    for (let i = playersEntry.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [playersEntry[i], playersEntry[j]] = [playersEntry[j], playersEntry[i]];
+    }
+    this.gameState.players = new Map(playersEntry); // 更新 Map 顺序
+    
+    // 基于洗牌后的新顺序重新获取存活玩家
+    alivePlayersAfterEffects = Array.from(this.gameState.players.values()).filter(p => p.isAlive);
+    // ==============================================================
+
     this.distributeSteps(alivePlayersAfterEffects);
     
     const firstAlive = alivePlayersAfterEffects[0];

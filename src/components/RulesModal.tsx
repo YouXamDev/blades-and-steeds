@@ -315,7 +315,7 @@ export function RulesModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                       <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-xl border border-gray-200 dark:border-gray-600 border-l-4 border-l-red-500">
                         <h4 className="font-bold text-lg mb-2 flex items-center gap-2">⑤ Boxer</h4>
                         <ul className="list-disc pl-5 space-y-1 text-sm">
-                          <li><strong>Gear:</strong> Starts with 3 [Glove Purchase Rights]. <strong>Severe Weakness: Starts with NO shirt and permanently CANNOT equip/use shirts (0 defense). Cannot use knives or horses.</strong></li>
+                          <li><strong>Gear:</strong> Starts with 3 [Glove Purchase Rights] <strong>(Purchase cost: Bronze 1 step / Silver 2 steps / Gold 3 steps)</strong>. <strong className="text-red-600 dark:text-red-400">Severe Weakness: Starts with NO shirt and permanently CANNOT equip/use shirts (0 defense). Cannot use knives or horses.</strong></li>
                           <li><strong>Attack:</strong> 1 step for a melee attack (Same location). Bronze(1)/Silver(2)/Gold(3).</li>
                           <li><strong>Damage:</strong> Base + (Gloves - 1). Bronze 1 / Silver 2 / Gold 3 (<strong>True Damage</strong>).</li>
                         </ul>
@@ -324,7 +324,7 @@ export function RulesModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                       <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-xl border border-gray-200 dark:border-gray-600 border-l-4 border-l-red-500">
                         <h4 className="font-bold text-lg mb-2 flex items-center gap-2">⑥ Monk</h4>
                         <ul className="list-disc pl-5 space-y-1 text-sm">
-                          <li><strong>Gear:</strong> Starts with 3 [Belt Purchase Rights]. <strong>Severe Weakness: Starts with NO shirt and permanently CANNOT equip/use shirts (0 defense). Cannot use knives or horses.</strong></li>
+                          <li><strong>Gear:</strong> Starts with 3 [Belt Purchase Rights] <strong>(Purchase cost: Bronze 1 step / Silver 2 steps / Gold 3 steps)</strong>. <strong className="text-red-600 dark:text-red-400">Severe Weakness: Starts with NO shirt and permanently CANNOT equip/use shirts (0 defense). Cannot use knives or horses.</strong></li>
                           <li><strong>Attack:</strong> 1 step. <strong>True Damage + Forced Knockback</strong> (Targets in Central are kicked to their own city; targets in a city are kicked to Central).</li>
                           <li><strong>Damage/Range:</strong> Bronze 1 (Same location) / Silver 1 (Same or Adjacent location) / Gold 2 (Same location).</li>
                         </ul>
@@ -508,7 +508,7 @@ export function RulesModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                       <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-xl border border-gray-200 dark:border-gray-600 border-l-4 border-l-red-500">
                         <h4 className="font-bold text-lg mb-2 flex items-center gap-2">⑤ 拳击手 (Boxer)</h4>
                         <ul className="list-disc pl-5 space-y-1 text-sm">
-                          <li><strong>初始：</strong> 开局自带三种【买拳套权】。<strong className="text-red-600 dark:text-red-400">极度弱点：开局无衣服，且永久无法装备/使用衣服（受击无减伤），无法使用刀和马。</strong></li>
+                          <li><strong>初始与购买：</strong> 开局自带三种【买拳套权】<strong>（购买分别消耗：铜拳套 1步 / 银拳套 2步 / 金拳套 3步）</strong>。<strong className="text-red-600 dark:text-red-400">极度弱点：开局无衣服，且永久无法装备/使用衣服（受击无减伤），无法使用刀和马。</strong></li>
                           <li><strong>攻击：</strong> 消耗 1步进行近战攻击(同位置)。</li>
                           <li><strong>伤害：</strong> 基础值+(同种数量-1)。铜拳套 1点 / 银拳套 2点 / 金拳套 3点(<strong>均为真实伤害</strong>)。</li>
                         </ul>
@@ -517,7 +517,7 @@ export function RulesModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                       <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-xl border border-gray-200 dark:border-gray-600 border-l-4 border-l-red-500">
                         <h4 className="font-bold text-lg mb-2 flex items-center gap-2">⑥ 武僧 (Monk)</h4>
                         <ul className="list-disc pl-5 space-y-1 text-sm">
-                          <li><strong>初始：</strong> 开局自带三种【买腰带权】。<strong className="text-red-600 dark:text-red-400">极度弱点：开局无衣服，且永久无法装备/使用衣服（受击无减伤），无法使用刀和马。</strong></li>
+                          <li><strong>初始与购买：</strong> 开局自带三种【买腰带权】<strong>（购买分别消耗：铜腰带 1步 / 银腰带 2步 / 金腰带 3步）</strong>。<strong className="text-red-600 dark:text-red-400">极度弱点：开局无衣服，且永久无法装备/使用衣服（受击无减伤），无法使用刀和马。</strong></li>
                           <li><strong>攻击：</strong> 消耗 1步攻击。<strong>真实伤害 + 强制踢飞位移</strong>（如果目标在中央，会被踢回其自己的城池；如果目标在城池，会被踢回中央）。</li>
                           <li><strong>伤害/范围：</strong> 铜腰带 1点(仅限同位置) / 银腰带 1点(同位置或相邻位置均可) / 金腰带 2点(仅限同位置)。</li>
                         </ul>

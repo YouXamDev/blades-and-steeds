@@ -490,7 +490,7 @@ export function RulesModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                       <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-xl border border-gray-200 dark:border-gray-600">
                         <h4 className="font-bold text-lg mb-2 flex items-center gap-2">③ 火箭兵 (Rocketeer)</h4>
                         <ul className="list-disc pl-5 space-y-1 text-sm">
-                          <li><strong>初始与购买：</strong> 开局自带【买火箭筒权】。可购买 🚀 火箭筒 (消耗2步) 和 📦 火箭弹 (消耗2步)。</li>
+                          <li><strong>初始与购买：</strong> 开局自带【买火箭筒权】。可购买 🚀 火箭筒 (消耗2步) 和 📦 火箭弹 (消耗1步)。</li>
                           <li><strong>开火：</strong> 消耗 1步+1发弹药。指定全图任意位置，下回合所有人行动结束后生效。</li>
                           <li><strong>伤害：</strong> 造成 2 + (火箭筒数量 - 1) 点<strong>真实伤害</strong>。</li>
                         </ul>

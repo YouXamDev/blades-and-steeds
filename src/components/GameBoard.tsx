@@ -73,6 +73,8 @@ export function GameBoard({ currentPlayer, allPlayers, isMyTurn, currentTurnPlay
                  currentPlayer.location.cityId === currentPlayer.id && 
                  currentPlayer.stepsRemaining > 0;
 
+  const hasBombs = (bombs || []).some(b => b.playerId === currentPlayer.id);
+
   const canUseKnife = currentPlayer.class !== 'boxer' && currentPlayer.class !== 'monk';
   const canUseHorse = currentPlayer.class !== 'boxer' && currentPlayer.class !== 'monk' &&
                       currentPlayer.class !== 'alien' && currentPlayer.class !== 'fatty';
@@ -382,22 +384,29 @@ export function GameBoard({ currentPlayer, allPlayers, isMyTurn, currentTurnPlay
 
               {/* Bomber: Bombs */}
               {currentPlayer.class === 'bomber' && (
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    onClick={() => onAction({ type: 'place_bomb' })}
-                    disabled={!canMove}
-                    className="py-2 px-3 rounded bg-orange-500 hover:bg-orange-600 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white text-sm font-semibold cursor-pointer disabled:cursor-not-allowed"
-                  >
-                    <Bomb className="w-4 h-4 inline mr-1" />
-                    {t('action.place_bomb')}
-                  </button>
-                  <button
-                    onClick={() => onAction({ type: 'detonate_bomb' })}
-                    disabled={!canMove}
-                    className="py-2 px-3 rounded bg-red-600 hover:bg-red-700 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white text-sm font-semibold cursor-pointer disabled:cursor-not-allowed"
-                  >
-                    💥 {t('action.detonate_bomb')}
-                  </button>
+                <div className="space-y-2">
+                  {!hasBombs && (
+                    <p className="text-xs text-gray-600 dark:text-gray-400">
+                      {t('ability.noBombsPlaced')}
+                    </p>
+                  )}
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => onAction({ type: 'place_bomb' })}
+                      disabled={!canMove}
+                      className="py-2 px-3 rounded bg-orange-500 hover:bg-orange-600 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white text-sm font-semibold cursor-pointer disabled:cursor-not-allowed"
+                    >
+                      <Bomb className="w-4 h-4 inline mr-1" />
+                      {t('action.place_bomb')}
+                    </button>
+                    <button
+                      onClick={() => onAction({ type: 'detonate_bomb' })}
+                      disabled={!canMove || !hasBombs}
+                      className="py-2 px-3 rounded bg-red-600 hover:bg-red-700 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white text-sm font-semibold cursor-pointer disabled:cursor-not-allowed"
+                    >
+                      💥 {t('action.detonate_bomb')}
+                    </button>
+                  </div>
                 </div>
               )}
 

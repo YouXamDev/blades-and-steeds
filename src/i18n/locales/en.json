@@ -113,7 +113,8 @@
     "backToPanel": "👆 Back to Panel",
     "forceEnd": "Force End",
     "confirmForceEnd": "Are you sure you want to force end the game?",
-    "playAgain": "Play Again"
+    "playAgain": "Play Again",
+    "purchaseCost": "{{count}} steps"
   },
   "class": {
     "mage": "Mage",

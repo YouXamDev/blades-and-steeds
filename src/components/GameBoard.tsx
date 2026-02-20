@@ -12,7 +12,23 @@ import {
   Heart
 } from 'lucide-react';
 import { StarMap } from './StarMap';
-import type { Player, GameAction, ItemType, Bomb as BombType, DelayedEffect } from '../types/game';
+import type { Player, GameAction, ItemType, Bomb as BombType, DelayedEffect, PurchaseRightType } from '../types/game';
+
+function getPurchaseCost(item: PurchaseRightType): number {
+  switch (item) {
+    case 'bow':
+    case 'rocket_launcher':
+    case 'ufo':
+    case 'silver_glove':
+    case 'silver_belt':
+      return 2;
+    case 'gold_glove':
+    case 'gold_belt':
+      return 3;
+    default:
+      return 1;
+  }
+}
 
 interface GameBoardProps {
   currentPlayer: Player;
@@ -159,7 +175,7 @@ export function GameBoard({ currentPlayer, allPlayers, isMyTurn, currentTurnPlay
                     disabled={!canMove}
                     className="py-2 px-4 rounded-lg bg-purple-500 hover:bg-purple-600 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white font-semibold transition-colors disabled:cursor-not-allowed text-sm cursor-pointer"
                   >
-                    {t(`item.${right}`)}
+                    {t(`item.${right}`)} ({t('game.purchaseCost', { count: getPurchaseCost(right) })})
                   </button>
                 ))}
               </div>

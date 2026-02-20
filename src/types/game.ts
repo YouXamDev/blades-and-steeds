@@ -222,6 +222,7 @@ export interface GameState {
   phase: 'waiting' | 'class_selection' | 'playing' | 'ended';
   players: Map<string, Player>;
   settings: GameSettings;
+  turnOrder: string[];
   currentTurn: number;
   currentPlayerId: string | null;
   currentClassSelectionPlayerId: string | null;

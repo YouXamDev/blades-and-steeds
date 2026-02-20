@@ -136,13 +136,13 @@ export class GameRoom extends DurableObject<Env> {
       const data = saved as any;
       this.gameState = {
         ...data,
-        // 新增兼容旧存档的设置默认值
         settings: {
           ...data.settings,
           initialHealth: data.settings?.initialHealth ?? 10,
           classOptionsCount: data.settings?.classOptionsCount ?? 3,
         },
         players: new Map(data.players.map((p: any) => [p.id, p])),
+        turnOrder: data.turnOrder || [],
         actionLogs: data.actionLogs || [],
         pendingLoots: data.pendingLoots || [],
         pendingAlienTeleports: data.pendingAlienTeleports || [],
@@ -228,7 +228,7 @@ export class GameRoom extends DurableObject<Env> {
         // Broadcast updated connection status (without logs for efficiency)
         this.broadcast({
           type: 'room_state',
-          state: this.serializeGameState(false),
+          state: this.serializeGameState(),
         });
         
         await this.saveGameState();
@@ -251,7 +251,7 @@ export class GameRoom extends DurableObject<Env> {
         // Broadcast updated state (without logs)
         this.broadcast({
           type: 'room_state',
-          state: this.serializeGameState(false),
+          state: this.serializeGameState(),
         });
         
         await this.saveGameState();
@@ -312,7 +312,7 @@ export class GameRoom extends DurableObject<Env> {
     }
 
     await this.saveGameState();
-    this.broadcast({ type: 'room_state', state: this.serializeGameState(false) });
+    this.broadcast({ type: 'room_state', state: this.serializeGameState() });
   }
 
   private async handleLeaveRoom(ws: WebSocket, message: { playerId: string }): Promise<void> {
@@ -352,7 +352,7 @@ export class GameRoom extends DurableObject<Env> {
 
     this.broadcast({
       type: 'room_state',
-      state: this.serializeGameState(false),
+      state: this.serializeGameState(),
     });
   }
   
@@ -371,7 +371,7 @@ export class GameRoom extends DurableObject<Env> {
     await this.saveGameState();
     await this.updateRoomRegistry();
 
-    this.broadcast({ type: 'room_state', state: this.serializeGameState(false) });
+    this.broadcast({ type: 'room_state', state: this.serializeGameState() });
   }
 
   private async handleReturnToRoom(ws: WebSocket, message: { playerId: string }): Promise<void> {
@@ -385,16 +385,16 @@ export class GameRoom extends DurableObject<Env> {
       return;
     }
 
-    // 重置房间公共状态
     this.gameState.phase = 'waiting';
     this.gameState.currentTurn = 0;
+    this.gameState.turnOrder = [];
     this.gameState.currentPlayerId = null;
     this.gameState.currentClassSelectionPlayerId = null;
     this.gameState.bombs = [];
     this.gameState.delayedEffects = [];
     this.gameState.actionLogs = [];
-    this.gameState.pendingLoots = []; // 清空战利品队列
-    this.gameState.pendingAlienTeleports = []; // 清空外星人瞬移队列
+    this.gameState.pendingLoots = [];
+    this.gameState.pendingAlienTeleports = [];
     
     const initHealth = this.gameState.settings.initialHealth ?? 10;
     for (const player of this.gameState.players.values()) {
@@ -415,7 +415,6 @@ export class GameRoom extends DurableObject<Env> {
     await this.saveGameState();
     await this.updateRoomRegistry();
 
-    // 广播全新的初始状态
     this.broadcast({ type: 'room_state', state: this.serializeGameState() });
   }
 
@@ -428,6 +427,7 @@ export class GameRoom extends DurableObject<Env> {
         createdAt: Date.now(),
         phase: 'waiting',
         players: new Map(),
+        turnOrder: [],
         currentTurn: 0,
         currentPlayerId: null,
         currentClassSelectionPlayerId: null,
@@ -464,7 +464,7 @@ export class GameRoom extends DurableObject<Env> {
       await this.updateRoomRegistry();
       
       this.send(ws, { type: 'room_state', state: this.serializeGameState() });
-      this.broadcast({ type: 'room_state', state: this.serializeGameState(false) }, ws);
+      this.broadcast({ type: 'room_state', state: this.serializeGameState() }, ws);
       return;
     }
 
@@ -564,13 +564,11 @@ export class GameRoom extends DurableObject<Env> {
     player.classOptions = null; // Clear options after selection
 
     // Move to next player for class selection
-    const playerIds = Array.from(this.gameState.players.keys());
-    const currentIndex = playerIds.indexOf(message.playerId);
+    const currentIndex = this.gameState.turnOrder.indexOf(message.playerId);
     const nextIndex = currentIndex + 1;
     
-    if (nextIndex < playerIds.length) {
-      // Give next player their class options
-      const nextPlayerId = playerIds[nextIndex];
+    if (nextIndex < this.gameState.turnOrder.length) {
+      const nextPlayerId = this.gameState.turnOrder[nextIndex];
       const nextPlayer = this.gameState.players.get(nextPlayerId)!;
       nextPlayer.classOptions = getAvailableClasses(this.gameState, this.gameState.settings.classOptionsCount ?? 3);
       this.gameState.currentClassSelectionPlayerId = nextPlayerId;
@@ -580,7 +578,7 @@ export class GameRoom extends DurableObject<Env> {
       // Broadcast updated state to all players (without logs)
       this.broadcast({
         type: 'room_state',
-        state: this.serializeGameState(false),
+        state: this.serializeGameState(),
       });
     } else {
       // All players have selected, start gameplay
@@ -633,27 +631,21 @@ export class GameRoom extends DurableObject<Env> {
     // Start class selection phase with turn-based selection
     this.gameState.phase = 'class_selection';
     
-    // Randomize player order for the game (使用标准 Fisher-Yates 洗牌算法，确保绝对随机)
-    const playersEntry = Array.from(this.gameState.players.entries());
-    for (let i = playersEntry.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [playersEntry[i], playersEntry[j]] = [playersEntry[j], playersEntry[i]];
-    }
-    this.gameState.players = new Map(playersEntry);
-    
-    // Get all players in order (deterministic from now on)
     const playerIds = Array.from(this.gameState.players.keys());
+    for (let i = playerIds.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [playerIds[i], playerIds[j]] = [playerIds[j], playerIds[i]];
+    }
+    this.gameState.turnOrder = playerIds;
     
     // First player starts selecting
-    const firstPlayerId = playerIds[0];
+    const firstPlayerId = this.gameState.turnOrder[0];
     this.gameState.currentClassSelectionPlayerId = firstPlayerId;
     
-    // Only give class options to the first player
     const firstPlayer = this.gameState.players.get(firstPlayerId)!;
     firstPlayer.classOptions = getAvailableClasses(this.gameState, this.gameState.settings.classOptionsCount ?? 3);
     firstPlayer.isReady = false;
     
-    // Clear class options for other players (they'll get them when it's their turn)
     for (const [playerId, player] of this.gameState.players) {
       if (playerId !== firstPlayerId) {
         player.classOptions = null;
@@ -662,26 +654,18 @@ export class GameRoom extends DurableObject<Env> {
     }
 
     await this.saveGameState();
-
-    // Broadcast updated state to all players (without logs)
-    this.broadcast({
-      type: 'room_state',
-      state: this.serializeGameState(false),
-    });
+    this.broadcast({ type: 'room_state', state: this.serializeGameState() });
   }
 
-  // 新增：处理外星人被动瞬移
   private async handleAlienPassiveTeleportAction(player: Player, action: any): Promise<ActionResult> {
     if (!this.gameState!.pendingAlienTeleports?.includes(player.id)) {
       throw new Error('Not eligible for alien passive teleport');
     }
 
-    // 如果前端传了 targetLocation 就移动，不传就当做主动放弃留在原地
     if (action.targetLocation) {
       player.location = action.targetLocation;
     }
     
-    // 将该外星人从等待列表中移除
     this.gameState!.pendingAlienTeleports = this.gameState!.pendingAlienTeleports.filter(id => id !== player.id);
     
     return {
@@ -797,7 +781,7 @@ export class GameRoom extends DurableObject<Env> {
       await this.saveGameState();
       
       // Broadcast updated state (without logs to save bandwidth)
-      this.broadcast({ type: 'room_state', state: this.serializeGameState(false) });
+      this.broadcast({ type: 'room_state', state: this.serializeGameState() });
     } catch (error: any) {
       console.error('Action failed:', error);
       this.sendError(ws, error.message || 'Action failed');
@@ -1560,13 +1544,14 @@ export class GameRoom extends DurableObject<Env> {
   private async nextTurn(): Promise<void> {
     if (!this.gameState) return;
 
-    const alivePlayers = Array.from(this.gameState.players.values()).filter(p => p.isAlive);
-    if (alivePlayers.length <= 1) return;
+    const aliveIds = this.gameState.turnOrder.filter(id => this.gameState!.players.get(id)?.isAlive);
+    if (aliveIds.length <= 1) return;
 
-    const currentIndex = alivePlayers.findIndex(p => p.id === this.gameState!.currentPlayerId);
-    const nextIndex = (currentIndex + 1) % alivePlayers.length;
+    const currentIndex = aliveIds.indexOf(this.gameState.currentPlayerId!);
+    const nextIndex = (currentIndex + 1) % aliveIds.length;
 
     if (nextIndex === 0) {
+      const alivePlayers = aliveIds.map(id => this.gameState!.players.get(id)!);
       const aliens = alivePlayers.filter(p => p.class === 'alien' && p.inventory.filter(i => i === 'ufo').length >= 2);
       
       if (aliens.length > 0) {
@@ -1574,15 +1559,15 @@ export class GameRoom extends DurableObject<Env> {
          this.gameState.pendingAlienTeleports = aliens.map(a => a.id);
          this.gameState.currentPlayerId = null;
          
-         this.broadcast({ type: 'room_state', state: this.serializeGameState(false) });
+         this.broadcast({ type: 'room_state', state: this.serializeGameState() });
          return;
       }
       
       await this.executeRoundEndSequence();
     } else {
-      const nextPlayer = alivePlayers[nextIndex];
-      this.gameState.currentPlayerId = nextPlayer.id;
-      this.broadcast({ type: 'turn_start', playerId: nextPlayer.id, steps: nextPlayer.stepsRemaining });
+      const nextPlayerId = aliveIds[nextIndex];
+      this.gameState.currentPlayerId = nextPlayerId;
+      this.broadcast({ type: 'turn_start', playerId: nextPlayerId, steps: this.gameState.players.get(nextPlayerId)!.stepsRemaining });
     }
   }
 
@@ -1594,35 +1579,31 @@ export class GameRoom extends DurableObject<Env> {
       this.broadcast({ type: 'new_action_logs', logs: effectLogs });
     }
 
-    let alivePlayersAfterEffects = Array.from(this.gameState.players.values()).filter(p => p.isAlive);
-    if (this.gameState.phase === 'ended' || alivePlayersAfterEffects.length <= 1) {
+    let aliveIds = this.gameState.turnOrder.filter(id => this.gameState!.players.get(id)?.isAlive);
+    const deadIds = this.gameState.turnOrder.filter(id => !this.gameState!.players.get(id)?.isAlive);
+
+    if (this.gameState.phase === 'ended' || aliveIds.length <= 1) {
       return;
     }
 
-    // 3. 进入下一轮
     this.gameState.currentTurn++;
 
-    // === 新增：每轮开始前重新洗牌，确保每回合玩家行动顺序完全随机 ===
-    const playersEntry = Array.from(this.gameState.players.entries());
-    for (let i = playersEntry.length - 1; i > 0; i--) {
+    for (let i = aliveIds.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
-      [playersEntry[i], playersEntry[j]] = [playersEntry[j], playersEntry[i]];
+      [aliveIds[i], aliveIds[j]] = [aliveIds[j], aliveIds[i]];
     }
-    this.gameState.players = new Map(playersEntry); // 更新 Map 顺序
+    this.gameState.turnOrder = [...aliveIds, ...deadIds];
     
-    // 基于洗牌后的新顺序重新获取存活玩家
-    alivePlayersAfterEffects = Array.from(this.gameState.players.values()).filter(p => p.isAlive);
-    // ==============================================================
+    const firstAliveId = aliveIds[0];
+    this.gameState.currentPlayerId = firstAliveId;
 
-    this.distributeSteps(alivePlayersAfterEffects);
-    
-    const firstAlive = alivePlayersAfterEffects[0];
-    this.gameState.currentPlayerId = firstAlive.id;
+    const alivePlayers = aliveIds.map(id => this.gameState!.players.get(id)!);
+    this.distributeSteps(alivePlayers);
 
     this.broadcast({
       type: 'turn_start',
-      playerId: firstAlive.id,
-      steps: firstAlive.stepsRemaining,
+      playerId: firstAliveId,
+      steps: this.gameState.players.get(firstAliveId)!.stepsRemaining,
     });
   }
 
@@ -1710,7 +1691,6 @@ export class GameRoom extends DurableObject<Env> {
       }
     }
 
-    // 修改：将已经生效过的效果从数组中移除
     this.gameState.delayedEffects = this.gameState.delayedEffects.filter(
       effect => effect.resolveAtRound > currentTurn
     );
@@ -1739,25 +1719,16 @@ export class GameRoom extends DurableObject<Env> {
     this.gameState.phase = 'playing';
     this.gameState.currentTurn = 1;
     
-    // （已移除这里的第二次错误洗牌逻辑，保持和选职业时一样的完美随机顺序）
+    const alivePlayerIds = this.gameState.turnOrder.filter(id => this.gameState!.players.get(id)?.isAlive);
+    this.gameState.currentPlayerId = alivePlayerIds[0];
 
-    // 选定当前活着的第一个玩家作为初始行动者
-    const alivePlayers = Array.from(this.gameState.players.values()).filter(p => p.isAlive);
-    this.gameState.currentPlayerId = alivePlayers[0].id;
-
-    // Distribute steps for all players
+    const alivePlayers = alivePlayerIds.map(id => this.gameState!.players.get(id)!);
     this.distributeSteps(alivePlayers);
 
-    const stepPool = this.gameState.players.size;
-    this.gameState.stepPool = stepPool;
-
+    this.gameState.stepPool = this.gameState.players.size;
     await this.saveGameState();
 
-    // Broadcast updated game state to all players (without logs)
-    this.broadcast({
-      type: 'room_state',
-      state: this.serializeGameState(false),
-    });
+    this.broadcast({ type: 'room_state', state: this.serializeGameState() });
   }
 
   private send(ws: WebSocket, message: ServerMessage): void {

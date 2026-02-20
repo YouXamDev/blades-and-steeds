@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Player, Bomb, DelayedEffect } from '../types/game';
 
@@ -25,6 +26,23 @@ export function StarMap({
   currentTurn = 0
 }: StarMapProps) {
   const { t } = useTranslation();
+
+  const [isTurnHighlighted, setIsTurnHighlighted] = useState(false);
+  const prevTurnRef = useRef(currentTurn);
+
+  useEffect(() => {
+    if (prevTurnRef.current !== currentTurn && currentTurn > 0) {
+      const timerOn = setTimeout(() => {
+        prevTurnRef.current = currentTurn;
+        setIsTurnHighlighted(true);
+      }, 0);
+      const timerOff = setTimeout(() => setIsTurnHighlighted(false), 1000);
+      return () => {
+        clearTimeout(timerOn);
+        clearTimeout(timerOff);
+      };
+    }
+  }, [currentTurn]);
 
   const getCityPosition = (index: number, total: number) => {
     const angle = (index * 2 * Math.PI) / total - Math.PI / 2; 
@@ -106,6 +124,23 @@ export function StarMap({
         style={{ maxHeight: '500px' }}
       >
         <rect width="500" height="500" fill="transparent" />
+
+        {/* Turn counter - top right */}
+        {currentTurn > 0 && (
+          <text
+            x="490"
+            y="22"
+            textAnchor="end"
+            style={{
+              fill: isTurnHighlighted ? '#f59e0b' : '#6b7280',
+              transition: 'fill 0.5s ease',
+              fontWeight: 'bold',
+              fontSize: '14px',
+            }}
+          >
+            {t('game.turn')} {currentTurn}
+          </text>
+        )}
 
         {players.map((player, index) => {
           const pos = getCityPosition(index, players.length);

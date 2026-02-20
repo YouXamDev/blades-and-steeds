@@ -39,9 +39,10 @@ interface GameBoardProps {
   bombs?: BombType[];
   delayedEffects?: DelayedEffect[];
   currentTurn?: number;
+  isActionPending?: boolean;
 }
 
-export function GameBoard({ currentPlayer, allPlayers, isMyTurn, currentTurnPlayerId, onAction, bombs, delayedEffects, currentTurn }: GameBoardProps) {
+export function GameBoard({ currentPlayer, allPlayers, isMyTurn, currentTurnPlayerId, onAction, bombs, delayedEffects, currentTurn, isActionPending }: GameBoardProps) {
   const { t } = useTranslation();
   const [potionSteps, setPotionSteps] = useState(1);
 
@@ -68,10 +69,11 @@ export function GameBoard({ currentPlayer, allPlayers, isMyTurn, currentTurnPlay
       </div>
     );
   }
-  const canMove = currentPlayer.stepsRemaining > 0;
+  const canMove = currentPlayer.stepsRemaining > 0 && !isActionPending;
   const canBuy = currentPlayer.location.type === 'city' && 
                  currentPlayer.location.cityId === currentPlayer.id && 
-                 currentPlayer.stepsRemaining > 0;
+                 currentPlayer.stepsRemaining > 0 &&
+                 !isActionPending;
 
   const hasBombs = (bombs || []).some(b => b.playerId === currentPlayer.id);
 

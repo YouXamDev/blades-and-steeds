@@ -32,6 +32,9 @@
     "create": "Create Room",
     "join": "Join Room",
     "leave": "Leave Room",
+    "delete": "Delete Room",
+    "confirmDelete": "Are you sure you want to delete this room?",
+    "confirmLeave": "Are you sure you want to leave the room?",
     "publicRoom": "Public Room",
     "privateRoom": "Private Room",
     "roomType": "Room Type",
@@ -105,7 +108,10 @@
     "endOfNextTurn": "End of next turn",
     "unknown": "Unknown",
     "viewBoard": "View Board",
-    "backToPanel": "👆 Back to Panel"
+    "backToPanel": "👆 Back to Panel",
+    "forceEnd": "Force End",
+    "confirmForceEnd": "Are you sure you want to force end the game?",
+    "playAgain": "Play Again"
   },
   "class": {
     "mage": "Mage",

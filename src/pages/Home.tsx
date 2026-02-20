@@ -44,15 +44,14 @@ export function Home() {
     navigate(`/room/${roomId}`);
   };
 
-  // 新增：解散房间逻辑
   const handleDeleteRoom = async (e: React.MouseEvent, roomId: string) => {
-    e.stopPropagation(); // 阻止触发加入房间的点击事件
-    if (!window.confirm(t('room.confirmDelete') || '确定要解散该房间吗？')) {
+    e.stopPropagation(); 
+    if (!window.confirm(t('room.confirmDelete'))) {
       return;
     }
     try {
       await fetch(`/api/rooms/${roomId}`, { method: 'DELETE' });
-      loadRooms(); // 刷新房间列表
+      loadRooms(); 
     } catch (error) {
       console.error('Failed to delete room:', error);
     }
@@ -105,7 +104,6 @@ export function Home() {
           ) : (
             <div className="space-y-3">
               {rooms.map((room) => (
-                // 修改点：把原先的 <button> 改成 <div>，防止嵌套按钮
                 <div
                   key={room.id}
                   className="w-full p-4 rounded-lg bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors text-left group"
@@ -132,17 +130,16 @@ export function Home() {
                           <button 
                             onClick={(e) => handleDeleteRoom(e, room.id)}
                             className="p-2 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors opacity-0 group-hover:opacity-100 cursor-pointer"
-                            title={t('room.delete') || '解散房间'}
+                            title={t('room.delete')}
                           >
                             <Trash2 className="w-5 h-5" />
                           </button>
                         )}
-                        {/* 新增：清晰的“加入房间”按钮 */}
                         <button
                           onClick={() => handleJoinRoom(room.id)}
                           className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm font-semibold rounded-lg shadow transition-colors cursor-pointer"
                         >
-                          {t('room.join') || '加入房间'}
+                          {t('room.join')}
                         </button>
                       </div>
                     </div>

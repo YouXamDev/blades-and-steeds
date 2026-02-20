@@ -117,7 +117,7 @@ export function GameRoom() {
   };
 
   const handleForceEnd = () => {
-    if (window.confirm(t('game.confirmForceEnd') || '确定要强制结束当前游戏吗？')) {
+    if (window.confirm(t('game.confirmForceEnd'))) {
       send({
         type: 'force_end_game',
         playerId: getUserId(),
@@ -133,7 +133,7 @@ export function GameRoom() {
   };
 
   const handleLeaveRoom = () => {
-    if (window.confirm(t('room.confirmLeave') || '确定要退出房间吗？')) {
+    if (window.confirm(t('room.confirmLeave'))) {
       send({
         type: 'leave_room',
         playerId: getUserId()
@@ -174,7 +174,6 @@ export function GameRoom() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 relative">
       
-      {/* 悬浮按钮：当弹窗被隐藏时，在右下角显示唤回按钮 */}
       {(pendingAlien || pendingLoot) && isModalHidden && (
         <button
           onClick={() => setIsModalHidden(false)}
@@ -184,12 +183,9 @@ export function GameRoom() {
         </button>
       )}
 
-      {/* 弹窗 1: 外星人超时空跃迁 (最高优先级) */}
       {pendingAlien && !isModalHidden && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4 backdrop-blur-md">
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6 max-w-md w-full animate-in fade-in zoom-in border-2 border-cyan-500 relative">
-            
-            {/* 新增：隐藏弹窗按键 */}
             <button 
               onClick={() => setIsModalHidden(true)}
               className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 flex items-center gap-1 text-sm font-semibold cursor-pointer"
@@ -230,12 +226,9 @@ export function GameRoom() {
         </div>
       )}
 
-      {/* 弹窗 2: 战利品选择弹窗 (优先级次之) */}
       {pendingLoot && !isModalHidden && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6 max-w-md w-full animate-in fade-in zoom-in border-2 border-yellow-500 relative">
-            
-            {/* 新增：隐藏弹窗按键 */}
             <button 
               onClick={() => setIsModalHidden(true)}
               className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 flex items-center gap-1 text-sm font-semibold cursor-pointer"
@@ -285,14 +278,13 @@ export function GameRoom() {
       )}
 
       <div className="container mx-auto px-4 py-6">
-        {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <button
             onClick={handleLeaveRoom}
             className="flex items-center gap-2 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors cursor-pointer font-semibold"
           >
             <LogOut className="w-5 h-5" />
-            {t('room.leave') || '退出房间'}
+            {t('room.leave')}
           </button>
           
           <div className="flex items-center gap-4">
@@ -305,16 +297,15 @@ export function GameRoom() {
               <button
                 onClick={handleForceEnd}
                 className="flex items-center gap-1 px-3 py-1.5 rounded bg-red-100 text-red-600 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50 transition-colors text-sm font-semibold cursor-pointer"
-                title={t('game.forceEnd') || '强制结束'}
+                title={t('game.forceEnd')}
               >
                 <Power className="w-4 h-4" />
-                <span className="hidden sm:inline">{t('game.forceEnd') || '结束'}</span>
+                <span className="hidden sm:inline">{t('game.forceEnd')}</span>
               </button>
             )}
           </div>
         </div>
 
-        {/* Waiting Phase */}
         {gameState.phase === 'waiting' && (
           <div className="max-w-4xl mx-auto">
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-8 mb-6">
@@ -327,7 +318,6 @@ export function GameRoom() {
                 showStatus={false}
               />
 
-              {/* 新增：房间设置面板 */}
               <div className="mt-8 mb-6 bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6 border border-gray-200 dark:border-gray-600">
                 <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                   {t('room.advancedSettings')}
@@ -387,7 +377,6 @@ export function GameRoom() {
           </div>
         )}
 
-        {/* Class Selection Phase */}
         {gameState.phase === 'class_selection' && (
           <div className="max-w-4xl mx-auto">
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-8">
@@ -477,7 +466,6 @@ export function GameRoom() {
           </div>
         )}
 
-        {/* Playing Phase */}
         {gameState.phase === 'playing' && currentPlayer && (
           <div className="space-y-6">
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6">
@@ -560,7 +548,6 @@ export function GameRoom() {
           </div>
         )}
 
-        {/* Game Ended Phase */}
         {gameState.phase === 'ended' && (
           <div className="max-w-2xl mx-auto">
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-8">
@@ -640,7 +627,7 @@ export function GameRoom() {
                     className="w-full px-8 py-3 rounded-lg bg-gradient-to-r from-green-500 to-teal-600 text-white font-semibold shadow-lg hover:shadow-xl transition-all cursor-pointer flex justify-center items-center gap-2"
                   >
                     <RotateCcw className="w-5 h-5" />
-                    {t('game.playAgain') || '再来一局'}
+                    {t('game.playAgain')}
                   </button>
                 )}
               </div>

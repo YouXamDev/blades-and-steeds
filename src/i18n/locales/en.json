@@ -51,7 +51,8 @@
     "startGame": "Start Game",
     "advancedSettings": "⚙️ Advanced Settings",
     "initialHealth": "Initial Health",
-    "classOptionsCount": "Class Options Count"
+    "classOptionsCount": "Class Options Count",
+    "removePlayer": "Remove Player"
   },
   "game": {
     "phase": {

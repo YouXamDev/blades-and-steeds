@@ -248,6 +248,7 @@ export const MessageType = {
   FORCE_END_GAME: 'force_end_game',
   RETURN_TO_ROOM: 'return_to_room',
   UPDATE_SETTINGS: 'update_settings',
+  REMOVE_PLAYER: 'remove_player',
   // Server -> Client
   ROOM_STATE: 'room_state',
   PLAYER_JOINED: 'player_joined',
@@ -313,6 +314,12 @@ export interface UpdateSettingsMessage {
   settings: Partial<GameSettings>;
 }
 
+export interface RemovePlayerMessage {
+  type: 'remove_player';
+  playerId: string;
+  targetPlayerId: string;
+}
+
 // Server messages
 export interface RoomStateMessage {
   type: 'room_state';
@@ -360,7 +367,8 @@ export type ClientMessage =
   | LeaveRoomMessage
   | ForceEndGameMessage
   | ReturnToRoomMessage
-  | UpdateSettingsMessage;
+  | UpdateSettingsMessage
+  | RemovePlayerMessage;
 
 export type ServerMessage =
   | RoomStateMessage

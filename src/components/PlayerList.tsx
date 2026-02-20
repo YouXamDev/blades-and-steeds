@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { Clock, Circle, Heart, Footprints } from 'lucide-react';
+import { Clock, Circle, Heart, Footprints, X } from 'lucide-react';
 import type { Player } from '../types/game';
 
 interface PlayerListProps {
@@ -8,6 +8,7 @@ interface PlayerListProps {
   highlightPlayerId?: string;
   showStatus?: boolean;
   compact?: boolean;
+  onRemovePlayer?: (playerId: string) => void;
 }
 
 export function PlayerList({ 
@@ -15,7 +16,8 @@ export function PlayerList({
   currentPlayerId, 
   highlightPlayerId,
   showStatus = false,
-  compact = false 
+  compact = false,
+  onRemovePlayer,
 }: PlayerListProps) {
   const { t } = useTranslation();
 
@@ -49,6 +51,17 @@ export function PlayerList({
               >
                 {index + 1}
               </div>
+            )}
+
+            {/* 房主移除玩家按钮 */}
+            {onRemovePlayer && player.id !== highlightPlayerId && (
+              <button
+                onClick={() => onRemovePlayer(player.id)}
+                className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white w-6 h-6 rounded-full flex items-center justify-center z-10 shadow-sm cursor-pointer border-2 border-white dark:border-gray-700"
+                title={t('room.removePlayer')}
+              >
+                <X className="w-3 h-3" />
+              </button>
             )}
 
             <div className="flex flex-col items-center text-center">

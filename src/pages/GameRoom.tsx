@@ -586,7 +586,7 @@ export function GameRoom() {
                             : 'bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600'
                         }`}
                       >
-                        <div className="flex-shrink-0 w-10 h-10 rounded-full bg-white dark:bg-gray-800 flex items-center justify-center font-bold text-lg">
+                        <div className="flex-shrink-0 w-10 h-10 rounded-full bg-white dark:bg-gray-800 flex items-center justify-center font-bold text-lg text-gray-900 dark:text-white">
                           {player.rank}
                         </div>
                         

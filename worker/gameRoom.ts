@@ -688,23 +688,6 @@ export class GameRoom extends DurableObject<Env> {
     this.broadcast({ type: 'room_state', state: this.serializeGameState() });
   }
 
-  private async handleAlienPassiveTeleportAction(player: Player, action: any): Promise<ActionResult> {
-    if (!this.gameState!.pendingAlienTeleports?.includes(player.id)) {
-      throw new Error('Not eligible for alien passive teleport');
-    }
-
-    if (action.targetLocation) {
-      player.location = action.targetLocation;
-    }
-    
-    this.gameState!.pendingAlienTeleports = this.gameState!.pendingAlienTeleports.filter(id => id !== player.id);
-    
-    return {
-      type: 'teleport',
-      location: action.targetLocation || player.location,
-    };
-  }
-
   private async handlePerformAction(ws: WebSocket, message: any): Promise<void> {
     if (!this.gameState || this.gameState.phase !== 'playing') {
       this.sendError(ws, 'Game not in progress');
@@ -713,10 +696,8 @@ export class GameRoom extends DurableObject<Env> {
 
     const { playerId, action } = message;
     
-    // 定义免费行动：拿战利品 和 外星人被动
-    const isFreeAction = action.type === 'claim_loot' || action.type === 'alien_passive_teleport';
+    const isFreeAction = action.type === 'claim_loot';
     
-    // 非免费行动，必须检查是否是自己的回合
     if (!isFreeAction && this.gameState.currentPlayerId !== playerId) {
       this.sendError(ws, 'Not your turn');
       return;
@@ -764,14 +745,12 @@ export class GameRoom extends DurableObject<Env> {
         case 'teleport': actionResult = await this.handleTeleportAction(player, action); break;
         case 'hug': actionResult = await this.handleHugAction(player, action); break;
         case 'claim_loot': actionResult = await this.handleClaimLootAction(player, action); break;
-        case 'alien_passive_teleport': actionResult = await this.handleAlienPassiveTeleportAction(player, action); break;
         default:
           this.sendError(ws, 'Unknown action type');
           return;
       }
 
-      // 如果是处理外星人瞬移 或 认领战利品，兼容原有的日志解析器，将类型映射过去
-      const logType = action.type === 'claim_loot' ? 'rob' : (action.type === 'alien_passive_teleport' ? 'teleport' : action.type);
+      const logType = action.type === 'claim_loot' ? 'rob' : action.type;
 
       // Record action log with structured result
       const newLog: ActionLog = {
@@ -794,18 +773,12 @@ export class GameRoom extends DurableObject<Env> {
       // Broadcast new log incrementally (separate from state)
       this.broadcast({ type: 'new_action_logs', logs: [newLog] });
 
-      // 扣除步数
       if (!isFreeAction) {
         player.stepsRemaining -= stepCost;
       }
 
-      // 核心：如果该外星人瞬移完成，且队列中没有其他外星人等待了，执行被冻结的回合结算！
-      if (action.type === 'alien_passive_teleport' && this.gameState.pendingAlienTeleports.length === 0) {
-         await this.executeRoundEndSequence();
-      } 
-      // 常规检查回合是否结束
-      else if (!isFreeAction && player.stepsRemaining <= 0 && this.gameState.currentPlayerId === player.id) {
-         await this.nextTurn();
+      if (!isFreeAction && player.stepsRemaining <= 0 && this.gameState.currentPlayerId === player.id) {
+       await this.nextTurn();
       }
 
       // Save state immediately after action
@@ -884,9 +857,28 @@ export class GameRoom extends DurableObject<Env> {
       throw new Error('Purchase right required');
     }
 
+    // 新增限制：购买箭必须有弓，购买火箭弹必须有火箭筒
+    if (action.purchaseRight === 'arrow' && !player.inventory.includes('bow')) {
+      throw new Error('Must have a bow to purchase arrows');
+    }
+    if (action.purchaseRight === 'rocket_ammo' && !player.inventory.includes('rocket_launcher')) {
+      throw new Error('Must have a rocket launcher to purchase rocket ammo');
+    }
+
     // Check if player has the purchase right
-    const rightIndex = player.purchaseRights.indexOf(action.purchaseRight);
-    if (rightIndex === -1) {
+    let hasRight = player.purchaseRights.includes(action.purchaseRight as any);
+    
+    // 法师特权：如果法师拥有对应武器，则即使没有默认购买权也可以买弹药
+    if (player.class === 'mage') {
+      if (action.purchaseRight === 'arrow' && player.inventory.includes('bow')) {
+        hasRight = true;
+      }
+      if (action.purchaseRight === 'rocket_ammo' && player.inventory.includes('rocket_launcher')) {
+        hasRight = true;
+      }
+    }
+
+    if (!hasRight) {
       throw new Error('You do not have this purchase right');
     }
 
@@ -901,7 +893,8 @@ export class GameRoom extends DurableObject<Env> {
       'bronze_belt', 'silver_belt', 'gold_belt'
     ];
     
-    if (!isConsumable && equipment.includes(action.purchaseRight)) {
+    const rightIndex = player.purchaseRights.indexOf(action.purchaseRight);
+    if (!isConsumable && equipment.includes(action.purchaseRight) && rightIndex !== -1) {
       // Remove purchase right for equipment
       player.purchaseRights.splice(rightIndex, 1);
     }
@@ -1141,8 +1134,8 @@ export class GameRoom extends DurableObject<Env> {
 
   // Archer: Shoot arrow
   private async handleShootArrowAction(player: Player, action: any): Promise<ActionResult> {
-    if (player.class !== 'archer') {
-      throw new Error('Only archers can shoot arrows');
+    if (player.class !== 'archer' && player.class !== 'mage') {
+      throw new Error('Only archers (or mages) can shoot arrows');
     }
 
     if (!action.target) {
@@ -1209,8 +1202,8 @@ export class GameRoom extends DurableObject<Env> {
 
   // Rocketeer: Launch rocket (delayed AOE)
   private async handleLaunchRocketAction(player: Player, action: any): Promise<ActionResult> {
-    if (player.class !== 'rocketeer') {
-      throw new Error('Only rocketeers can launch rockets');
+    if (player.class !== 'rocketeer' && player.class !== 'mage') {
+      throw new Error('Only rocketeers (or mages) can launch rockets');
     }
 
     if (!action.targetLocation) {
@@ -1328,10 +1321,9 @@ export class GameRoom extends DurableObject<Env> {
   }
 
   // Boxer: Punch attack
-  // Boxer: Punch attack
   private async handlePunchAction(player: Player, action: any): Promise<ActionResult> {
-    if (player.class !== 'boxer') {
-      throw new Error('Only boxers can punch');
+    if (player.class !== 'boxer' && player.class !== 'mage') {
+      throw new Error('Only boxers (or mages) can punch');
     }
 
     if (!action.target) {
@@ -1386,8 +1378,8 @@ export class GameRoom extends DurableObject<Env> {
 
   // Monk: Kick attack (with knock back)
   private async handleKickAction(player: Player, action: any): Promise<ActionResult> {
-    if (player.class !== 'monk') {
-      throw new Error('Only monks can kick');
+    if (player.class !== 'monk' && player.class !== 'mage') {
+      throw new Error('Only monks (or mages) can kick');
     }
 
     if (!action.target) {
@@ -1461,8 +1453,9 @@ export class GameRoom extends DurableObject<Env> {
 
   // Alien: Teleport
   private async handleTeleportAction(player: Player, action: any): Promise<ActionResult> {
-    if (player.class !== 'alien') {
-      throw new Error('Only aliens can teleport');
+    // 允许法师使用
+    if (player.class !== 'alien' && player.class !== 'mage') {
+      throw new Error('Only aliens (or mages) can teleport');
     }
 
     if (!action.targetLocation) {
@@ -1473,6 +1466,14 @@ export class GameRoom extends DurableObject<Env> {
     const ufoCount = player.inventory.filter(i => i === 'ufo').length;
     if (ufoCount === 0) {
       throw new Error('You do not have a UFO');
+    }
+
+    // 增加每回合限一次的判断
+    const hasTeleportedThisTurn = this.gameState!.actionLogs.some(
+      log => log.turn === this.gameState!.currentTurn && log.playerId === player.id && log.type === 'teleport'
+    );
+    if (hasTeleportedThisTurn) {
+      throw new Error('Can only teleport once per turn');
     }
 
     player.location = action.targetLocation;
@@ -1584,18 +1585,6 @@ export class GameRoom extends DurableObject<Env> {
     const nextIndex = (currentIndex + 1) % aliveIds.length;
 
     if (nextIndex === 0) {
-      const alivePlayers = aliveIds.map(id => this.gameState!.players.get(id)!);
-      const aliens = alivePlayers.filter(p => p.class === 'alien' && p.inventory.filter(i => i === 'ufo').length >= 2);
-      
-      if (aliens.length > 0) {
-         if (!this.gameState.pendingAlienTeleports) this.gameState.pendingAlienTeleports = [];
-         this.gameState.pendingAlienTeleports = aliens.map(a => a.id);
-         this.gameState.currentPlayerId = null;
-         
-         this.broadcast({ type: 'room_state', state: this.serializeGameState() });
-         return;
-      }
-      
       await this.executeRoundEndSequence();
     } else {
       const nextPlayerId = aliveIds[nextIndex];

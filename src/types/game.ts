@@ -82,6 +82,7 @@ export const ActionType = {
   USE_POTION: 'use_potion',
   CLAIM_LOOT: 'claim_loot',
   ALIEN_PASSIVE_TELEPORT: 'alien_passive_teleport',
+  FATTY_PASSIVE_DAMAGE: 'fatty_passive_damage',
 } as const;
 export type ActionType = typeof ActionType[keyof typeof ActionType];
 
@@ -148,7 +149,7 @@ export interface DelayedEffect {
     cityId?: string;
   };
   value: number; // Heal amount or damage
-  resolveAtRound: number; // 明确指出在第几轮结束时生效，前端可借此判断：若等于 currentTurn 则本轮生效，大于则下轮生效
+  resolveAtRound: number;
 }
 
 // Structured action result types
@@ -165,7 +166,8 @@ export type ActionResult =
   | { type: 'place_bomb'; location: { type: LocationType; cityId?: string } }
   | { type: 'detonate_bomb'; victims: Array<{ name: string; damage: number; killed: boolean }> }
   | { type: 'teleport'; location: { type: LocationType; cityId?: string } }
-  | { type: 'hug'; target: string; targetName: string; location: { type: LocationType; cityId?: string } };
+  | { type: 'hug'; target: string; targetName: string; location: { type: LocationType; cityId?: string } }
+  | { type: 'fatty_passive_damage'; target: string; targetName: string; damage: number; killed: boolean };
 
 // Action in queue
 export interface GameAction {

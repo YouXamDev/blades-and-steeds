@@ -1576,8 +1576,57 @@ export class GameRoom extends DurableObject<Env> {
   private async nextTurn(): Promise<void> {
     if (!this.gameState) return;
 
+    const currentPlayerId = this.gameState.currentPlayerId;
+    if (currentPlayerId) {
+      const currentPlayer = this.gameState.players.get(currentPlayerId);
+      if (currentPlayer && currentPlayer.class === 'fatty' && currentPlayer.isAlive && currentPlayer.location.type === 'city') {
+        const victims = Array.from(this.gameState.players.values()).filter(p =>
+          p.id !== currentPlayer.id &&
+          p.isAlive &&
+          p.location.type === 'city' &&
+          p.location.cityId === currentPlayer.location.cityId
+        );
+
+        const newLogs: ActionLog[] = [];
+        for (const victim of victims) {
+          victim.health = Math.max(0, victim.health - 1);
+          const killed = victim.health <= 0;
+          
+          if (killed) {
+            await this.handlePlayerDeath(currentPlayer, victim);
+          }
+
+          const log: ActionLog = {
+            id: crypto.randomUUID(),
+            turn: this.gameState.currentTurn,
+            playerId: currentPlayer.id,
+            playerName: currentPlayer.name,
+            type: 'fatty_passive_damage' as any, 
+            actionResult: {
+              type: 'fatty_passive_damage' as any,
+              target: victim.id,
+              targetName: victim.name,
+              damage: 1,
+              killed,
+            },
+            timestamp: Date.now(),
+          };
+          this.gameState.actionLogs.push(log);
+          newLogs.push(log);
+        }
+
+        if (newLogs.length > 0) {
+          this.broadcast({ type: 'new_action_logs', logs: newLogs });
+        }
+      }
+    }
+
     const aliveIds = this.gameState.turnOrder.filter(id => this.gameState!.players.get(id)?.isAlive);
-    if (aliveIds.length <= 1) return;
+    
+    if (this.gameState.phase === 'ended' || aliveIds.length <= 1) {
+      this.broadcast({ type: 'room_state', state: this.serializeGameState() });
+      return;
+    }
 
     const currentIndex = aliveIds.indexOf(this.gameState.currentPlayerId!);
     const nextIndex = (currentIndex + 1) % aliveIds.length;

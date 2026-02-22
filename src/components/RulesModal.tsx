@@ -101,7 +101,7 @@ export function RulesModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                         <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm md:col-span-2">
                           <h4 className="font-bold text-gray-900 dark:text-white mb-2 border-b dark:border-gray-700 pb-1">💰 Items & Loot</h4>
                           <ul className="text-sm space-y-1">
-                            <li>• <strong>Buy:</strong> Only in <em>Your Own City</em>.</li>
+                            <li>• <strong>Buy:</strong> Only in <em>Your Own City</em>. Must hold a Bow/Launcher to buy ammo.</li>
                             <li>• <strong>Rob:</strong> Steal from someone in the <em>same location</em>.</li>
                             <li>• <strong>Kill Reward:</strong> Pick 1 free item from the dead player's loot!</li>
                           </ul>
@@ -148,7 +148,7 @@ export function RulesModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                         <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm md:col-span-2">
                           <h4 className="font-bold text-gray-900 dark:text-white mb-2 border-b dark:border-gray-700 pb-1">💰 发育与舔包</h4>
                           <ul className="text-sm space-y-1">
-                            <li>• <strong>买东西：</strong> 必须跑回<em>自己的城池</em>才能买。</li>
+                            <li>• <strong>买东西：</strong> 必须跑回<em>自己的城池</em>才能买。（买弹药需先有对应武器）</li>
                             <li>• <strong>抢劫：</strong> 贴脸站一起，就能花 1 步抢别人的实物。</li>
                             <li>• <strong>舔包奖励：</strong> 击杀别人后，你可以免费从他的遗物里挑 1 件好东西！</li>
                           </ul>
@@ -214,7 +214,7 @@ export function RulesModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                               <tr>
                                 <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 font-semibold">Purchase</td>
                                 <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-purple-500">1 step + Right</td>
-                                <td className="border border-gray-300 dark:border-gray-600 px-3 py-2"><strong>Only allowed in [Your Own City].</strong> Consume 1 step and the corresponding purchase right to get the physical item. Consumables (arrows, ammo) do not consume the right.</td>
+                                <td className="border border-gray-300 dark:border-gray-600 px-3 py-2"><strong>Only allowed in [Your Own City].</strong> Consume 1 step and the purchase right to get the item. Consumables (ammo) do not consume the right. <strong>Note: You must own a Bow to buy Arrows, and a Rocket Launcher to buy Rocket Ammo.</strong></td>
                               </tr>
                               <tr>
                                 <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 font-semibold">Rob</td>
@@ -239,7 +239,7 @@ export function RulesModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                       <div>
                         <h4 className="font-semibold text-gray-900 dark:text-white mb-2">2.2 Items & Loot Rules</h4>
                         <ul className="list-disc pl-5 space-y-1 text-sm">
-                          <li><strong>Hold vs. Use:</strong> You can rob any item. However, if an item doesn't match your class (e.g., a Boxer holding a Knife), it only takes up space. You cannot use it or gain damage bonuses from it.</li>
+                          <li><strong>Hold vs. Use:</strong> You can rob any item. However, if an item doesn't match your class (e.g., a Boxer holding a Knife), it only takes up space. You cannot use it or gain damage bonuses from it (Exception: Mage).</li>
                           <li><strong>Loot:</strong> When a player is killed, all their non-bound items enter a loot pool. <strong>The killer gets to pick 1 item for free</strong>, and the remaining items are destroyed.</li>
                         </ul>
                       </div>
@@ -248,7 +248,6 @@ export function RulesModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                         <h4 className="font-semibold text-gray-900 dark:text-white mb-2">2.3 Settlement Order</h4>
                         <ul className="list-disc pl-5 space-y-1 text-sm">
                           <li><strong>FIFO (First In, First Out):</strong> Delayed skills (like Mage's potion or Rocketeer's rocket) resolve uniformly <strong>at the end of the specified round (after everyone has moved)</strong>.</li>
-                          <li><strong>Passive Trigger:</strong> The Alien's UFO passive triggers <strong>after all players have moved but before delayed skills resolve</strong>.</li>
                         </ul>
                       </div>
                     </div>
@@ -281,14 +280,14 @@ export function RulesModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                         <ul className="list-disc pl-5 space-y-1 text-sm">
                           <li><strong>Gear:</strong> No special starting rights. Can infinitely purchase 🧪 Potions (1 step each).</li>
                           <li><strong>Skill:</strong> Delayed Area Heal. Throw to any location on the map; resolves at the end of the next turn.</li>
-                          <li><strong>Effect:</strong> Heals everyone in the target area for X HP (X = extra steps invested during casting).</li>
+                          <li><strong>Passive (All-rounder):</strong> If a Mage acquires another class's exclusive item (e.g. Bow, UFO), they can ignore class restrictions and use its skills, and can purchase corresponding ammo if the weapon is held.</li>
                         </ul>
                       </div>
 
                       <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-xl border border-gray-200 dark:border-gray-600">
                         <h4 className="font-bold text-lg mb-2 flex items-center gap-2">② Archer</h4>
                         <ul className="list-disc pl-5 space-y-1 text-sm">
-                          <li><strong>Gear:</strong> Starts with a [Bow Purchase Right]. Can buy 🏹 Bows (2 steps) and 🎯 Arrows (1 step).</li>
+                          <li><strong>Gear:</strong> Starts with a [Bow Purchase Right]. Can buy 🏹 Bows (2 steps) and 🎯 Arrows (1 step, must hold Bow first).</li>
                           <li><strong>Shoot:</strong> Costs 1 step + 1 arrow. Target must be in the same or adjacent location (City & Central are adjacent).</li>
                           <li><strong>Damage:</strong> 1 + (Bows - 1).</li>
                         </ul>
@@ -297,7 +296,7 @@ export function RulesModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                       <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-xl border border-gray-200 dark:border-gray-600">
                         <h4 className="font-bold text-lg mb-2 flex items-center gap-2">③ Rocketeer</h4>
                         <ul className="list-disc pl-5 space-y-1 text-sm">
-                          <li><strong>Gear:</strong> Starts with a [Launcher Purchase Right]. Can buy 🚀 Launchers (2 steps) and 📦 Ammo (2 steps).</li>
+                          <li><strong>Gear:</strong> Starts with a [Launcher Purchase Right]. Can buy 🚀 Launchers (2 steps) and 📦 Ammo (1 step, must hold Launcher first).</li>
                           <li><strong>Fire:</strong> Costs 1 step + 1 ammo. Target any location globally; resolves at the end of the next turn.</li>
                           <li><strong>Damage:</strong> Deals 2 + (Launchers - 1) <strong>True Damage</strong>.</li>
                         </ul>
@@ -334,8 +333,7 @@ export function RulesModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                         <h4 className="font-bold text-lg mb-2 flex items-center gap-2">⑦ Alien</h4>
                         <ul className="list-disc pl-5 space-y-1 text-sm">
                           <li><strong>Gear:</strong> Starts with a [UFO Purchase Right]. <strong>Cannot use horses.</strong></li>
-                          <li><strong>Active:</strong> 1 step to teleport to any location on the map.</li>
-                          <li><strong>Passive:</strong> While holding 2 UFOs, you get a free teleport at the end of the turn (before delayed skills resolve).</li>
+                          <li><strong>Active:</strong> As long as you have a UFO, costs 1 step to teleport to any location on the map. <strong>(Limited to 1 use per turn, even with multiple UFOs)</strong>.</li>
                         </ul>
                       </div>
 
@@ -407,7 +405,7 @@ export function RulesModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                               <tr>
                                 <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 font-semibold">购买</td>
                                 <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-purple-500">1步+购买权</td>
-                                <td className="border border-gray-300 dark:border-gray-600 px-3 py-2"><strong>仅限在【自己的城池】内进行。</strong>消耗 1步和对应物品的购买权，获得实体物品（箭矢、弹药为消耗品，购买后购买权不消失）。</td>
+                                <td className="border border-gray-300 dark:border-gray-600 px-3 py-2"><strong>仅限在【自己的城池】内进行。</strong>消耗 1步和对应物品的购买权，获得实体物品（箭矢、弹药为消耗品，购买后购买权不消失。<strong>注意：购买箭或火箭弹必须先拥有弓或火箭筒</strong>）。</td>
                               </tr>
                               <tr>
                                 <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 font-semibold">抢夺</td>
@@ -432,7 +430,7 @@ export function RulesModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                       <div>
                         <h4 className="font-semibold text-gray-900 dark:text-white mb-2">2.2 物品与遗物原则</h4>
                         <ul className="list-disc pl-5 space-y-1 text-sm">
-                          <li><strong>持有 vs 使用：</strong> 玩家可抢夺任何实物。但若职业不匹配（例如拳击手抢到了刀），物品仅仅占用空间，玩家无法使用它，也无法从中获得任何伤害加成。</li>
+                          <li><strong>持有 vs 使用：</strong> 玩家可抢夺任何实物。但若职业不匹配（例如拳击手抢到了刀），物品仅仅占用空间，玩家无法使用它，也无法从中获得任何伤害加成（法师特例除外）。</li>
                           <li><strong>遗物处理：</strong> 当一名玩家被击杀后，其身上所有的非绑定物品将进入待选池，<strong>击杀者可免费挑选 1 件</strong>作为战利品，其余物品全部就地销毁。</li>
                         </ul>
                       </div>
@@ -441,7 +439,6 @@ export function RulesModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                         <h4 className="font-semibold text-gray-900 dark:text-white mb-2">2.3 结算顺序</h4>
                         <ul className="list-disc pl-5 space-y-1 text-sm">
                           <li><strong>按释放顺序生效 (FIFO)：</strong> 游戏中的延时类技能（如法师的药水、火箭兵的炮弹），将在<strong>其设定的轮数结束时（即全场所有人均行动完毕后）</strong>统一触发结算。</li>
-                          <li><strong>被动触发：</strong> 外星人的双飞碟被动，会在所有人行动完毕且<strong>在上述延时技能生效前</strong>优先触发。</li>
                         </ul>
                       </div>
                     </div>
@@ -474,14 +471,14 @@ export function RulesModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                         <ul className="list-disc pl-5 space-y-1 text-sm">
                           <li><strong>初始与购买：</strong> 开局无特殊购买权。可无限购买 🧪 药水 (每次消耗1步)。</li>
                           <li><strong>技能：</strong> 延时群体回血。可指定全图任意位置（某人城池或中央）投掷，下回合所有人行动结束后生效。</li>
-                          <li><strong>效果：</strong> 处于该位置上的所有人回复 X 点血量（X由施法时投入的额外步数决定）。</li>
+                          <li><strong>被动（全职高手）：</strong> 只要拥有别的职业的专属道具，就可以无视职业限制使用其技能（如用弓射箭、坐飞碟传送等），并在拥有对应武器时可购买专属弹药。</li>
                         </ul>
                       </div>
 
                       <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-xl border border-gray-200 dark:border-gray-600">
                         <h4 className="font-bold text-lg mb-2 flex items-center gap-2">② 弓箭手 (Archer)</h4>
                         <ul className="list-disc pl-5 space-y-1 text-sm">
-                          <li><strong>初始与购买：</strong> 开局自带【买弓权】。可购买 🏹 弓 (消耗2步) 和 🎯 箭矢 (消耗1步)。</li>
+                          <li><strong>初始与购买：</strong> 开局自带【买弓权】。可购买 🏹 弓 (消耗2步) 和 🎯 箭矢 (消耗1步，<strong>必须先拥有弓才能购买</strong>)。</li>
                           <li><strong>射击：</strong> 消耗 1步+1支箭。攻击范围为同位置或相邻位置（中央与城池互为相邻）。</li>
                           <li><strong>伤害：</strong> 1 + (弓数量 - 1)。</li>
                         </ul>
@@ -490,7 +487,7 @@ export function RulesModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                       <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-xl border border-gray-200 dark:border-gray-600">
                         <h4 className="font-bold text-lg mb-2 flex items-center gap-2">③ 火箭兵 (Rocketeer)</h4>
                         <ul className="list-disc pl-5 space-y-1 text-sm">
-                          <li><strong>初始与购买：</strong> 开局自带【买火箭筒权】。可购买 🚀 火箭筒 (消耗2步) 和 📦 火箭弹 (消耗1步)。</li>
+                          <li><strong>初始与购买：</strong> 开局自带【买火箭筒权】。可购买 🚀 火箭筒 (消耗2步) 和 📦 火箭弹 (消耗1步，<strong>必须先拥有火箭筒才能购买</strong>)。</li>
                           <li><strong>开火：</strong> 消耗 1步+1发弹药。指定全图任意位置，下回合所有人行动结束后生效。</li>
                           <li><strong>伤害：</strong> 造成 2 + (火箭筒数量 - 1) 点<strong>真实伤害</strong>。</li>
                         </ul>
@@ -527,8 +524,7 @@ export function RulesModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                         <h4 className="font-bold text-lg mb-2 flex items-center gap-2">⑦ 外星人 (Alien)</h4>
                         <ul className="list-disc pl-5 space-y-1 text-sm">
                           <li><strong>初始：</strong> 开局自带【买UFO权】。<strong>无法使用马。</strong></li>
-                          <li><strong>主动：</strong> 消耗 1步可瞬移至全图任意位置。</li>
-                          <li><strong>被动：</strong> 当身上拥有 2 个UFO时，本回合所有人行动完毕且在延时技能生效前，可免费瞬移一次。</li>
+                          <li><strong>主动瞬移：</strong> 只要拥有UFO，消耗 1步可瞬移至全图任意位置。<strong>（每回合限使用1次，拥有多个飞碟也是1次）</strong>。</li>
                         </ul>
                       </div>
 

@@ -857,7 +857,6 @@ export class GameRoom extends DurableObject<Env> {
       throw new Error('Purchase right required');
     }
 
-    // 新增限制：购买箭必须有弓，购买火箭弹必须有火箭筒
     if (action.purchaseRight === 'arrow' && !player.inventory.includes('bow')) {
       throw new Error('Must have a bow to purchase arrows');
     }
@@ -868,7 +867,6 @@ export class GameRoom extends DurableObject<Env> {
     // Check if player has the purchase right
     let hasRight = player.purchaseRights.includes(action.purchaseRight as any);
     
-    // 法师特权：如果法师拥有对应武器，则即使没有默认购买权也可以买弹药
     if (player.class === 'mage') {
       if (action.purchaseRight === 'arrow' && player.inventory.includes('bow')) {
         hasRight = true;

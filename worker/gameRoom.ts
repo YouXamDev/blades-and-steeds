@@ -50,7 +50,7 @@ function getPurchaseCost(item: PurchaseRightType): number {
     case 'gold_belt':
       return 3;
     default:
-      return 1; // 刀、马、铜装备、炸弹、箭头、药水等默认为 1 步
+      return 1;
   }
 }
 
@@ -61,10 +61,9 @@ function getAvailableClasses(gameState: GameState, count: number): PlayerClass[]
       classCounts.set(p.class, (classCounts.get(p.class) || 0) + 1);
     }
   }
-  // 过滤掉已经有2个人的职业
-  const available = getAllPlayerClasses().filter(c => (classCounts.get(c) || 0) < 2);
+  const limit = gameState.settings.maxPlayersPerClass ?? 2;
+  const available = getAllPlayerClasses().filter(c => (classCounts.get(c) || 0) < limit);
   const shuffled = available.sort(() => Math.random() - 0.5);
-  // 返回指定数量（如果不够则返回剩余的所有可用职业）
   return shuffled.slice(0, count);
 }
 
@@ -137,8 +136,9 @@ export class GameRoom extends DurableObject<Env> {
         ...data,
         settings: {
           ...data.settings,
-          initialHealth: data.settings?.initialHealth ?? 10,
+          initialHealth: data.settings?.initialHealth ?? 15,
           classOptionsCount: data.settings?.classOptionsCount ?? 3,
+          maxPlayersPerClass: data.settings?.maxPlayersPerClass ?? 2,
         },
         players: new Map(data.players.map((p: any) => [p.id, p])),
         turnOrder: data.turnOrder || [],
@@ -269,7 +269,7 @@ export class GameRoom extends DurableObject<Env> {
       case 'join_room':
         await this.handleJoinRoom(ws, message);
         break;
-      case 'leave_room': // 新增分支
+      case 'leave_room':
         await this.handleLeaveRoom(ws, message);
         break;
       case 'select_class':
@@ -304,6 +304,7 @@ export class GameRoom extends DurableObject<Env> {
     
     if (this.gameState.settings.initialHealth < 1) this.gameState.settings.initialHealth = 1;
     if (this.gameState.settings.classOptionsCount < 1) this.gameState.settings.classOptionsCount = 1;
+    if (this.gameState.settings.maxPlayersPerClass < 1) this.gameState.settings.maxPlayersPerClass = 1;
 
     const initHealth = this.gameState.settings.initialHealth;
     for (const player of this.gameState.players.values()) {
@@ -426,7 +427,7 @@ export class GameRoom extends DurableObject<Env> {
     this.gameState.pendingLoots = [];
     this.gameState.pendingAlienTeleports = [];
     
-    const initHealth = this.gameState.settings.initialHealth ?? 10;
+    const initHealth = this.gameState.settings.initialHealth ?? 15;
     for (const player of this.gameState.players.values()) {
       player.health = initHealth;
       player.maxHealth = initHealth;
@@ -472,8 +473,9 @@ export class GameRoom extends DurableObject<Env> {
           minPlayers: 2,
           maxPlayers: 9,
           isPublic: this.roomIsPublic,
-          initialHealth: 10,
-          classOptionsCount: 3
+          initialHealth: 15,
+          classOptionsCount: 3,
+          maxPlayersPerClass: 2
         },
         hostId: message.playerId,
       } as any;
@@ -522,7 +524,7 @@ export class GameRoom extends DurableObject<Env> {
     }
 
     // Add player
-    const initHealth = state.settings.initialHealth ?? 10;
+    const initHealth = state.settings.initialHealth ?? 15;
     const player: Player = {
       id: message.playerId,
       name: message.playerName,
@@ -562,7 +564,6 @@ export class GameRoom extends DurableObject<Env> {
       return;
     }
     
-    // Check if it's this player's turn to select
     if (this.gameState.currentClassSelectionPlayerId !== message.playerId) {
       this.sendError(ws, 'Not your turn to select class');
       return;
@@ -578,12 +579,12 @@ export class GameRoom extends DurableObject<Env> {
       return;
     }
 
-    // Check class limit (max 2 per class)
     const classCount = Array.from(this.gameState.players.values()).filter(
       p => p.class === message.selectedClass
     ).length;
 
-    if (classCount >= 2) {
+    const limit = this.gameState.settings.maxPlayersPerClass ?? 2;
+    if (classCount >= limit) {
       this.sendError(ws, 'Class limit reached');
       return;
     }

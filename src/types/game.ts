@@ -214,8 +214,9 @@ export interface GameSettings {
   minPlayers: number;
   maxPlayers: number;
   isPublic: boolean;
-  initialHealth: number; // <--- 新增
-  classOptionsCount: number; // <--- 新增
+  initialHealth: number;
+  classOptionsCount: number;
+  maxPlayersPerClass: number;
 }
 
 // Game state

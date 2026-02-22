@@ -358,7 +358,7 @@ export function GameRoom() {
                 <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                   {t('room.advancedSettings')}
                 </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                       {t('room.initialHealth')}
@@ -368,13 +368,13 @@ export function GameRoom() {
                         type="number"
                         min="1"
                         max="100"
-                        value={gameState.settings.initialHealth ?? 10}
-                        onChange={(e) => handleUpdateSettings({ initialHealth: parseInt(e.target.value) || 10 })}
+                        value={gameState.settings.initialHealth ?? 15}
+                        onChange={(e) => handleUpdateSettings({ initialHealth: parseInt(e.target.value) || 15 })}
                         className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition-shadow"
                       />
                     ) : (
                       <div className="w-full px-4 py-2 rounded-lg bg-gray-200 dark:bg-gray-600 text-gray-900 dark:text-white font-medium">
-                        {gameState.settings.initialHealth ?? 10}
+                        {gameState.settings.initialHealth ?? 15}
                       </div>
                     )}
                   </div>
@@ -394,6 +394,25 @@ export function GameRoom() {
                     ) : (
                       <div className="w-full px-4 py-2 rounded-lg bg-gray-200 dark:bg-gray-600 text-gray-900 dark:text-white font-medium">
                         {gameState.settings.classOptionsCount ?? 3}
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                      {t('room.maxPlayersPerClass')}
+                    </label>
+                    {isHost ? (
+                      <input
+                        type="number"
+                        min="1"
+                        max="9"
+                        value={gameState.settings.maxPlayersPerClass ?? 2}
+                        onChange={(e) => handleUpdateSettings({ maxPlayersPerClass: parseInt(e.target.value) || 2 })}
+                        className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition-shadow"
+                      />
+                    ) : (
+                      <div className="w-full px-4 py-2 rounded-lg bg-gray-200 dark:bg-gray-600 text-gray-900 dark:text-white font-medium">
+                        {gameState.settings.maxPlayersPerClass ?? 2}
                       </div>
                     )}
                   </div>

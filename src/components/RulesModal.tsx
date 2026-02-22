@@ -174,14 +174,14 @@ export function RulesModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                         <h4 className="font-semibold text-gray-900 dark:text-white mb-2">1.1 Game Overview</h4>
                         <ul className="list-disc pl-5 space-y-1 text-sm">
                           <li><strong>Players:</strong> ≥2 (Recommended max 8).</li>
-                          <li><strong>Win Condition:</strong> The last surviving player wins. (If players die simultaneously, the killer is declared the winner).</li>
-                          <li><strong>Setup:</strong> The host sets the initial health (default 10) and class options count (default 3). Players choose their class from random options before the game starts. Max 2 players can choose the same class per game.</li>
+                          <li><strong>Win Condition:</strong> The last surviving player wins. (Special case: If players die simultaneously, the killer is declared the winner).</li>
+                          <li><strong>Setup:</strong> The host sets the initial health (default 15) and class options count (default 3). Players choose their class from random options before the game starts. The maximum number of players per class is configurable by the host (default 2).</li>
                         </ul>
                       </div>
                       <div>
                         <h4 className="font-semibold text-gray-900 dark:text-white mb-2">1.2 Characters & Map</h4>
                         <ul className="list-disc pl-5 space-y-1 text-sm">
-                          <li><strong>Attributes:</strong> Health, inventory, and remaining steps are public information visible to everyone.</li>
+                          <li><strong>Attributes:</strong> Initial Health is 15 (configurable by host). Inventory, health, and remaining steps are public information.</li>
                           <li><strong>Initial Gear:</strong> Shirt x1, Knife Purchase Right x1, Horse Purchase Right x1 (Special classes may vary).</li>
                           <li><strong>Map Mechanics:</strong> The map consists of [Player Cities] and a [Central] hub. Cities only connect to Central. Direct city-to-city movement is impossible; you must transit through Central.</li>
                         </ul>
@@ -214,12 +214,12 @@ export function RulesModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                               <tr>
                                 <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 font-semibold">Purchase</td>
                                 <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-purple-500">1 step + Right</td>
-                                <td className="border border-gray-300 dark:border-gray-600 px-3 py-2"><strong>Only allowed in [Your Own City].</strong> Consume 1 step and the purchase right to get the item. Consumables (ammo) do not consume the right. <strong>Note: You must own a Bow to buy Arrows, and a Rocket Launcher to buy Rocket Ammo.</strong></td>
+                                <td className="border border-gray-300 dark:border-gray-600 px-3 py-2"><strong>Only allowed in [Your Own City].</strong> Consume 1 step and the purchase right to get the item. Consumables (ammo, bombs) do not consume the right. <strong>Note: You must own a Bow/Launcher to buy corresponding Ammo.</strong></td>
                               </tr>
                               <tr>
                                 <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 font-semibold">Rob</td>
                                 <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-yellow-500">1 step</td>
-                                <td className="border border-gray-300 dark:border-gray-600 px-3 py-2">Target must be in the same location. Steal a physical item (excluding 'Fat'). Purchase rights cannot be stolen.</td>
+                                <td className="border border-gray-300 dark:border-gray-600 px-3 py-2">Target must be in the same location. Randomly (or specifically) steal a physical item (excluding 'Fat'). Purchase rights cannot be stolen.</td>
                               </tr>
                               <tr>
                                 <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 font-semibold">Attack (Knife)</td>
@@ -239,8 +239,8 @@ export function RulesModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                       <div>
                         <h4 className="font-semibold text-gray-900 dark:text-white mb-2">2.2 Items & Loot Rules</h4>
                         <ul className="list-disc pl-5 space-y-1 text-sm">
-                          <li><strong>Hold vs. Use:</strong> You can rob any item. However, if an item doesn't match your class (e.g., a Boxer holding a Knife), it only takes up space. You cannot use it or gain damage bonuses from it (Exception: Mage).</li>
-                          <li><strong>Loot:</strong> When a player is killed, all their non-bound items enter a loot pool. <strong>The killer gets to pick 1 item for free</strong>, and the remaining items are destroyed.</li>
+                          <li><strong>Hold vs. Use:</strong> You can rob any item. However, if an item doesn't match your class, it only takes up space. You cannot use it or gain damage bonuses from it (Exception: Mage).</li>
+                          <li><strong>Loot Handling:</strong> When a player is killed, all their non-bound items enter a loot pool. <strong>The killer gets to pick 1 item for free</strong>, and the remaining items are destroyed.</li>
                         </ul>
                       </div>
 
@@ -259,7 +259,6 @@ export function RulesModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                     <div className="bg-gray-100 dark:bg-gray-700/50 p-4 rounded-lg text-sm">
                       <p className="font-bold text-red-500 dark:text-red-400 mb-2">Final Damage = (Total Weapon Damage) - (Total Shirts) + 1</p>
                       <p className="text-gray-500 dark:text-gray-400 mb-2">*(Note 1: If the final calculation is ≤ 0, the damage dealt is 0, meaning defense was not broken)*</p>
-                      <p className="text-gray-500 dark:text-gray-400 mb-4">*(Note 2: Boxers and Monks permanently cannot equip shirts, so their shirt count is always 0)*</p>
                       <ul className="space-y-2">
                         <li>🗡️ <strong>Knife (Base Damage 1):</strong> Total Damage = 1 + (Number of Knives - 1)</li>
                         <li>🐴 <strong>Horse (Base Damage 3):</strong> Total Damage = 3 + (Number of Horses - 1)</li>
@@ -276,80 +275,85 @@ export function RulesModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-xl border border-gray-200 dark:border-gray-600">
-                        <h4 className="font-bold text-lg mb-2 flex items-center gap-2">① Mage</h4>
+                        <h4 className="font-bold text-lg mb-2 flex items-center gap-2">① Vampire</h4>
                         <ul className="list-disc pl-5 space-y-1 text-sm">
-                          <li><strong>Gear:</strong> No special starting rights. Can infinitely purchase 🧪 Potions (1 step each).</li>
-                          <li><strong>Skill:</strong> Delayed Area Heal. Throw to any location on the map; resolves at the end of the next turn.</li>
-                          <li><strong>Passive (All-rounder):</strong> If a Mage acquires another class's exclusive item (e.g. Bow, UFO), they can ignore class restrictions and use its skills, and can purchase corresponding ammo if the weapon is held.</li>
+                          <li><strong>Initial & Buy:</strong> No special starting rights. Normal knife/horse purchase.</li>
+                          <li><strong>Passive (Blood Leech):</strong> Attacking with a [Knife] instantly heals you for 1 HP (even if the damage is fully blocked). Max health cannot be exceeded.</li>
+                        </ul>
+                      </div>
+
+                      <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-xl border border-gray-200 dark:border-gray-600 border-l-4 border-l-red-500">
+                        <h4 className="font-bold text-lg mb-2 flex items-center gap-2">② Boxer</h4>
+                        <ul className="list-disc pl-5 space-y-1 text-sm">
+                          <li><strong>Initial & Buy:</strong> Starts with 3 [Glove Purchase Rights] <strong>(Cost: Bronze 1 / Silver 2 / Gold 3)</strong>. <strong className="text-red-600 dark:text-red-400">No shirt, cannot use knives or horses.</strong></li>
+                          <li><strong>Attack:</strong> 1 step for a melee attack with equipped gloves.</li>
+                          <li><strong>Damage:</strong> Base + (Quantity - 1). Bronze 1 / Silver 2 / Gold 3 (<strong>True Damage</strong>).</li>
                         </ul>
                       </div>
 
                       <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-xl border border-gray-200 dark:border-gray-600">
-                        <h4 className="font-bold text-lg mb-2 flex items-center gap-2">② Archer</h4>
+                        <h4 className="font-bold text-lg mb-2 flex items-center gap-2">③ Bomber</h4>
                         <ul className="list-disc pl-5 space-y-1 text-sm">
-                          <li><strong>Gear:</strong> Starts with a [Bow Purchase Right]. Can buy 🏹 Bows (2 steps) and 🎯 Arrows (1 step, must hold Bow first).</li>
-                          <li><strong>Shoot:</strong> Costs 1 step + 1 arrow. Target must be in the same or adjacent location (City & Central are adjacent).</li>
+                          <li><strong>Initial & Buy:</strong> No special starting rights. Normal knife/horse purchase.</li>
+                          <li><strong>Place Bomb:</strong> 1 step to place a bomb at your feet (visible to all, stackable).</li>
+                          <li><strong>Detonate:</strong> 1 step to instantly detonate ALL your placed bombs on the map.</li>
+                          <li><strong>Damage:</strong> Deals 1 <strong>True Damage</strong> per bomb.</li>
+                        </ul>
+                      </div>
+
+                      <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-xl border border-gray-200 dark:border-gray-600">
+                        <h4 className="font-bold text-lg mb-2 flex items-center gap-2">④ Archer</h4>
+                        <ul className="list-disc pl-5 space-y-1 text-sm">
+                          <li><strong>Initial & Buy:</strong> Starts with [Bow Purchase Right]. Can buy 🏹 Bow (2 steps) and 🎯 Arrows (1 step, must hold Bow first).</li>
+                          <li><strong>Shoot:</strong> Costs 1 step + 1 arrow.</li>
+                          <li><strong>Range:</strong> Same or adjacent location (City & Central are adjacent).</li>
                           <li><strong>Damage:</strong> 1 + (Bows - 1).</li>
                         </ul>
                       </div>
 
                       <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-xl border border-gray-200 dark:border-gray-600">
-                        <h4 className="font-bold text-lg mb-2 flex items-center gap-2">③ Rocketeer</h4>
+                        <h4 className="font-bold text-lg mb-2 flex items-center gap-2">⑤ Fatty</h4>
                         <ul className="list-disc pl-5 space-y-1 text-sm">
-                          <li><strong>Gear:</strong> Starts with a [Launcher Purchase Right]. Can buy 🚀 Launchers (2 steps) and 📦 Ammo (1 step, must hold Launcher first).</li>
-                          <li><strong>Fire:</strong> Costs 1 step + 1 ammo. Target any location globally; resolves at the end of the next turn.</li>
+                          <li><strong>Initial & Buy:</strong> Starts with exclusive [Fat] (Grants 1 Defense, cannot be stolen, destroyed upon death). <strong>Cannot use horses.</strong></li>
+                          <li><strong>Hug Move:</strong> Costs <strong>1 step</strong> to forcibly drag one player from your current location to an adjacent location.</li>
+                          <li><strong>Passive (Mass Suppression):</strong> At the end of your turn, all other players in the same City lose 1 HP. (Does not trigger in Central).</li>
+                        </ul>
+                      </div>
+
+                      <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-xl border border-gray-200 dark:border-gray-600">
+                        <h4 className="font-bold text-lg mb-2 flex items-center gap-2">⑥ Rocketeer</h4>
+                        <ul className="list-disc pl-5 space-y-1 text-sm">
+                          <li><strong>Initial & Buy:</strong> Starts with [Launcher Purchase Right]. Can buy 🚀 Launcher (2 steps) and 📦 Ammo (1 step, must hold Launcher first).</li>
+                          <li><strong>Fire:</strong> Costs 1 step + 1 ammo.</li>
+                          <li><strong>Range:</strong> Global AOE. Resolves at the end of the next turn.</li>
                           <li><strong>Damage:</strong> Deals 2 + (Launchers - 1) <strong>True Damage</strong>.</li>
                         </ul>
                       </div>
 
-                      <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-xl border border-gray-200 dark:border-gray-600">
-                        <h4 className="font-bold text-lg mb-2 flex items-center gap-2">④ Bomber</h4>
-                        <ul className="list-disc pl-5 space-y-1 text-sm">
-                          <li><strong>Gear:</strong> No special starting rights. Bombs do not need to be purchased and can be used directly (unlimited uses).</li>
-                          <li><strong>Action:</strong> 1 step to place a bomb at your feet; 1 step to instantly detonate ALL your placed bombs on the map.</li>
-                          <li><strong>Damage:</strong> Deals 1 <strong>True Damage</strong> per bomb.</li>
-                        </ul>
-                      </div>
-
                       <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-xl border border-gray-200 dark:border-gray-600 border-l-4 border-l-red-500">
-                        <h4 className="font-bold text-lg mb-2 flex items-center gap-2">⑤ Boxer</h4>
+                        <h4 className="font-bold text-lg mb-2 flex items-center gap-2">⑦ Monk</h4>
                         <ul className="list-disc pl-5 space-y-1 text-sm">
-                          <li><strong>Gear:</strong> Starts with 3 [Glove Purchase Rights] <strong>(Purchase cost: Bronze 1 step / Silver 2 steps / Gold 3 steps)</strong>. <strong className="text-red-600 dark:text-red-400">Severe Weakness: Starts with NO shirt and permanently CANNOT equip/use shirts (0 defense). Cannot use knives or horses.</strong></li>
-                          <li><strong>Attack:</strong> 1 step for a melee attack (Same location). Bronze(1)/Silver(2)/Gold(3).</li>
-                          <li><strong>Damage:</strong> Base + (Gloves - 1). Bronze 1 / Silver 2 / Gold 3 (<strong>True Damage</strong>).</li>
-                        </ul>
-                      </div>
-
-                      <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-xl border border-gray-200 dark:border-gray-600 border-l-4 border-l-red-500">
-                        <h4 className="font-bold text-lg mb-2 flex items-center gap-2">⑥ Monk</h4>
-                        <ul className="list-disc pl-5 space-y-1 text-sm">
-                          <li><strong>Gear:</strong> Starts with 3 [Belt Purchase Rights] <strong>(Purchase cost: Bronze 1 step / Silver 2 steps / Gold 3 steps)</strong>. <strong className="text-red-600 dark:text-red-400">Severe Weakness: Starts with NO shirt and permanently CANNOT equip/use shirts (0 defense). Cannot use knives or horses.</strong></li>
-                          <li><strong>Attack:</strong> 1 step. <strong>True Damage + Forced Knockback</strong> (Targets in Central are kicked to their own city; targets in a city are kicked to Central).</li>
-                          <li><strong>Damage/Range:</strong> Bronze 1 (Same location) / Silver 1 (Same or Adjacent location) / Gold 2 (Same location).</li>
+                          <li><strong>Initial & Buy:</strong> Starts with 3 [Belt Purchase Rights] <strong>(Cost: Bronze 1 / Silver 2 / Gold 3)</strong>. <strong className="text-red-600 dark:text-red-400">No shirt, cannot use knives or horses.</strong></li>
+                          <li><strong>Attack:</strong> 1 step. <strong>True Damage + Forced Knockback</strong> (Kicks target from Central to City, or City to Central).</li>
+                          <li><strong>Damage/Range:</strong> Bronze 1 (Melee) / Silver 1 (Melee/Adjacent) / Gold 2 (Melee).</li>
                         </ul>
                       </div>
 
                       <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-xl border border-gray-200 dark:border-gray-600">
-                        <h4 className="font-bold text-lg mb-2 flex items-center gap-2">⑦ Alien</h4>
+                        <h4 className="font-bold text-lg mb-2 flex items-center gap-2">⑧ Alien</h4>
                         <ul className="list-disc pl-5 space-y-1 text-sm">
-                          <li><strong>Gear:</strong> Starts with a [UFO Purchase Right]. <strong>Cannot use horses.</strong></li>
-                          <li><strong>Active:</strong> As long as you have a UFO, costs 1 step to teleport to any location on the map. <strong>(Limited to 1 use per turn, even with multiple UFOs)</strong>.</li>
+                          <li><strong>Initial & Buy:</strong> Starts with [UFO Purchase Right]. <strong>Cannot use horses.</strong></li>
+                          <li><strong>Active Teleport:</strong> While owning a UFO, costs 1 step to teleport anywhere globally. <strong>(Limit 1 per turn, regardless of UFO count)</strong>.</li>
                         </ul>
                       </div>
 
                       <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-xl border border-gray-200 dark:border-gray-600">
-                        <h4 className="font-bold text-lg mb-2 flex items-center gap-2">⑧ Fatty</h4>
+                        <h4 className="font-bold text-lg mb-2 flex items-center gap-2">⑨ Mage</h4>
                         <ul className="list-disc pl-5 space-y-1 text-sm">
-                          <li><strong>Gear:</strong> Starts with exclusive [Fat] (Grants 1 Defense, cannot be stolen, destroyed upon death). <strong>Cannot use horses.</strong></li>
-                          <li><strong>Skill:</strong> For <strong>1 step</strong>, you can forcibly drag one player from your current location to move with you to an adjacent location.</li>
-                        </ul>
-                      </div>
-
-                      <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-xl border border-gray-200 dark:border-gray-600">
-                        <h4 className="font-bold text-lg mb-2 flex items-center gap-2">⑨ Vampire</h4>
-                        <ul className="list-disc pl-5 space-y-1 text-sm">
-                          <li><strong>Gear:</strong> No special starting rights. Normal knife/horse purchase.</li>
-                          <li><strong>Passive:</strong> Attacking with a [Knife] instantly heals you for 1 HP (even if the damage is fully blocked by the target's armor).</li>
+                          <li><strong>Initial & Buy:</strong> No special starting rights. Can infinitely purchase 🧪 Potions (1 step each, does not occupy inventory slots).</li>
+                          <li><strong>Skill:</strong> Delayed Area Heal. Throw to any location; resolves at the end of the next turn.</li>
+                          <li><strong>Effect:</strong> Heals everyone at the location for X health (X = extra steps invested during cast).</li>
+                          <li><strong>Passive (Weapon Master):</strong> Can ignore class restrictions to use any stolen exclusive weapons, and can buy corresponding ammo.</li>
                         </ul>
                       </div>
                     </div>
@@ -365,16 +369,16 @@ export function RulesModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                         <h4 className="font-semibold text-gray-900 dark:text-white mb-2">1.1 游戏综述</h4>
                         <ul className="list-disc pl-5 space-y-1 text-sm">
                           <li><strong>游戏人数：</strong> ≥2 人（原则上最多 8 人）。</li>
-                          <li><strong>获胜条件：</strong> 存活到最后的一人获胜（特殊情况：若同归于尽，则由击杀者判胜）。</li>
-                          <li><strong>开局流程：</strong> 房主可设定初始血量（默认10）和备选职业数（默认3）。每局开始前，系统会为每位玩家随机分配职业候选项，玩家确认选择后进入游戏。每局同一种职业最多允许2名玩家选择。</li>
+                          <li><strong>获胜条件：</strong> 存活到最后的一人获胜（特殊情况：同归于尽时击杀者判胜）。</li>
+                          <li><strong>开局流程：</strong> 房主可设定初始血量（默认15）和备选职业数（默认3）。每局开始前，系统为每位玩家随机分配候选项，玩家进行**选择**决定本局角色。每局同一种职业的人数上限可由房主配置（默认最多2名）。</li>
                         </ul>
                       </div>
                       <div>
                         <h4 className="font-semibold text-gray-900 dark:text-white mb-2">1.2 角色与地图</h4>
                         <ul className="list-disc pl-5 space-y-1 text-sm">
-                          <li><strong>角色属性：</strong> 玩家的血量、物品栏及剩余步数均为公开透明的信息，全场可见。</li>
-                          <li><strong>初始装备：</strong> 衣服 x1，买刀权 x1，买马权 x1（部分特殊职业的初始权益会有所不同）。</li>
-                          <li><strong>地图机制：</strong> 地图由【各玩家的专属城池】与【中央】组成。所有城池仅与中央相连。玩家之间无法直接从一个城池移动到另一个城池，必须经过中央进行中转。</li>
+                          <li><strong>角色属性：</strong> 初始血量 15 点（可由房主配置）。玩家的物品栏、血量及步数均为公开透明。</li>
+                          <li><strong>初始装备：</strong> 衣服 x1，买刀权 x1，买马权 x1（部分特殊职业会有所不同）。</li>
+                          <li><strong>地图机制：</strong> 地图由【各玩家的城池】与【中央】组成。城池仅通往中央，玩家之间无法直接从一个城池移动到另一个城池，必须经过中央中转。</li>
                         </ul>
                       </div>
                     </div>
@@ -386,7 +390,7 @@ export function RulesModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                     <div className="space-y-4">
                       <div>
                         <h4 className="font-semibold text-gray-900 dark:text-white mb-2">2.1 步数与行动池</h4>
-                        <p className="text-sm mb-2">每回合的任何行动都需要消耗“步数”。<br/><strong className="text-blue-500">每回合步数 = 基础步数(1步) + 随机分配步数（全场随机池总量 = 当前存活人数）。</strong></p>
+                        <p className="text-sm mb-2">每回合的行动需要消耗“步数”。<br/><strong className="text-blue-500">每回合步数 = 基础步数(1步) + 随机分配步数（随机池总量 = 当前存活人数）。</strong></p>
                         <div className="overflow-x-auto">
                           <table className="min-w-full text-sm text-left border-collapse border border-gray-300 dark:border-gray-600">
                             <thead className="bg-gray-100 dark:bg-gray-700">
@@ -400,27 +404,27 @@ export function RulesModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                               <tr>
                                 <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 font-semibold">移动</td>
                                 <td className="border border-gray-300 dark:border-gray-600 px-3 py-2">1步</td>
-                                <td className="border border-gray-300 dark:border-gray-600 px-3 py-2">在【当前所在城池】与【中央】之间移动一次。</td>
+                                <td className="border border-gray-300 dark:border-gray-600 px-3 py-2">在【所在城池】与【中央】之间移动一次。</td>
                               </tr>
                               <tr>
                                 <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 font-semibold">购买</td>
                                 <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-purple-500">1步+购买权</td>
-                                <td className="border border-gray-300 dark:border-gray-600 px-3 py-2"><strong>仅限在【自己的城池】内进行。</strong>消耗 1步和对应物品的购买权，获得实体物品（箭矢、弹药为消耗品，购买后购买权不消失。<strong>注意：购买箭或火箭弹必须先拥有弓或火箭筒</strong>）。</td>
+                                <td className="border border-gray-300 dark:border-gray-600 px-3 py-2"><strong>仅限在【自己的城池】内进行。</strong>消耗1步和对应购买权获得实体物品（箭矢、弹药、炸弹为消耗品，购买权不消失。<strong>注意：购买箭或火箭弹必须先拥有弓或火箭筒</strong>）。</td>
                               </tr>
                               <tr>
                                 <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 font-semibold">抢夺</td>
                                 <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-yellow-500">1步</td>
-                                <td className="border border-gray-300 dark:border-gray-600 px-3 py-2">必须与目标处于同一位置。抢夺对方任意一件实体物品（专属道具脂肪衣不可抢）。无法抢夺虚拟的购买权。</td>
+                                <td className="border border-gray-300 dark:border-gray-600 px-3 py-2">需与目标同位置。随机（或指定）抢夺对方任意一件实体物品（脂肪衣不可抢）。不可抢夺购买权。</td>
                               </tr>
                               <tr>
                                 <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 font-semibold">攻击-刀</td>
                                 <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-red-500">1步</td>
-                                <td className="border border-gray-300 dark:border-gray-600 px-3 py-2">必须与目标处于同一位置。对目标造成伤害。</td>
+                                <td className="border border-gray-300 dark:border-gray-600 px-3 py-2">需与目标同位置。对目标造成伤害。</td>
                               </tr>
                               <tr>
                                 <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 font-semibold">攻击-马</td>
                                 <td className="border border-gray-300 dark:border-gray-600 px-3 py-2 text-orange-500">1步</td>
-                                <td className="border border-gray-300 dark:border-gray-600 px-3 py-2">必须与目标同处在一个城池内（在中央不可使用）。造成伤害的同时，强制将目标踢回中央。</td>
+                                <td className="border border-gray-300 dark:border-gray-600 px-3 py-2">需与目标同城内（中央不可用）。造成伤害 + 强制将目标踢回中央。</td>
                               </tr>
                             </tbody>
                           </table>
@@ -430,15 +434,15 @@ export function RulesModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                       <div>
                         <h4 className="font-semibold text-gray-900 dark:text-white mb-2">2.2 物品与遗物原则</h4>
                         <ul className="list-disc pl-5 space-y-1 text-sm">
-                          <li><strong>持有 vs 使用：</strong> 玩家可抢夺任何实物。但若职业不匹配（例如拳击手抢到了刀），物品仅仅占用空间，玩家无法使用它，也无法从中获得任何伤害加成（法师特例除外）。</li>
-                          <li><strong>遗物处理：</strong> 当一名玩家被击杀后，其身上所有的非绑定物品将进入待选池，<strong>击杀者可免费挑选 1 件</strong>作为战利品，其余物品全部就地销毁。</li>
+                          <li><strong>持有 vs 使用：</strong> 玩家可抢夺任何物品。若职业不匹配（例如拳击手抢到了刀），物品仅占位，无法使用也无法提供伤害加成（法师例外）。</li>
+                          <li><strong>遗物处理：</strong> 当一名玩家被击杀后，其身上所有的非绑定物品将进入待选池，<strong>击杀者可免费挑选 1 件</strong>作为战利品，其余物品全部销毁。</li>
                         </ul>
                       </div>
 
                       <div>
-                        <h4 className="font-semibold text-gray-900 dark:text-white mb-2">2.3 结算顺序</h4>
+                        <h4 className="font-semibold text-gray-900 dark:text-white mb-2">2.3 结算顺序 (Settlement Order)</h4>
                         <ul className="list-disc pl-5 space-y-1 text-sm">
-                          <li><strong>按释放顺序生效 (FIFO)：</strong> 游戏中的延时类技能（如法师的药水、火箭兵的炮弹），将在<strong>其设定的轮数结束时（即全场所有人均行动完毕后）</strong>统一触发结算。</li>
+                          <li><strong>按释放顺序生效 (FIFO)：</strong> 游戏中的延时类技能（如法师的药水、火箭兵的炮弹），将在<strong>设定的轮数结束时（所有人均行动完毕后）</strong>统一触发结算。</li>
                         </ul>
                       </div>
                     </div>
@@ -449,11 +453,10 @@ export function RulesModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                     <h3 className="text-xl font-bold text-blue-600 dark:text-blue-400 border-b border-blue-200 dark:border-blue-900 pb-2 mb-4">3. 战斗数值系统</h3>
                     <div className="bg-gray-100 dark:bg-gray-700/50 p-4 rounded-lg text-sm">
                       <p className="font-bold text-red-500 dark:text-red-400 mb-2">最终伤害 = (武器总伤害) - (衣服总数量) + 1</p>
-                      <p className="text-gray-500 dark:text-gray-400 mb-2">*(注 1：若最终计算结果 ≤ 0，则造成 0 点伤害，即无法破防)*</p>
-                      <p className="text-gray-500 dark:text-gray-400 mb-4">*(注 2：拳击手与武僧由于永久无法穿戴衣服，在面对普通攻击时，其衣服数量计算始终为 0)*</p>
+                      <p className="text-gray-500 dark:text-gray-400 mb-2">*(注：若计算结果 ≤ 0，则造成 0 点伤害，即无法破防)*</p>
                       <ul className="space-y-2">
-                        <li>🗡️ <strong>刀 (基础伤害 1):</strong> 总伤害 = 1 + (拥有刀的数量 - 1)</li>
-                        <li>🐴 <strong>马 (基础伤害 3):</strong> 总伤害 = 3 + (拥有马的数量 - 1)</li>
+                        <li>🗡️ <strong>刀 (基础伤害 1):</strong> 总伤害 = 1 + (刀数量 - 1)</li>
+                        <li>🐴 <strong>马 (基础伤害 3):</strong> 总伤害 = 3 + (马数量 - 1)</li>
                       </ul>
                     </div>
                   </section>
@@ -467,80 +470,85 @@ export function RulesModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-xl border border-gray-200 dark:border-gray-600">
-                        <h4 className="font-bold text-lg mb-2 flex items-center gap-2">① 法师 (Mage)</h4>
+                        <h4 className="font-bold text-lg mb-2 flex items-center gap-2">① 吸血鬼 (Vampire)</h4>
                         <ul className="list-disc pl-5 space-y-1 text-sm">
-                          <li><strong>初始与购买：</strong> 开局无特殊购买权。可无限购买 🧪 药水 (每次消耗1步)。</li>
-                          <li><strong>技能：</strong> 延时群体回血。可指定全图任意位置（某人城池或中央）投掷，下回合所有人行动结束后生效。</li>
-                          <li><strong>被动（全职高手）：</strong> 只要拥有别的职业的专属道具，就可以无视职业限制使用其技能（如用弓射箭、坐飞碟传送等），并在拥有对应武器时可购买专属弹药。</li>
+                          <li><strong>初始与购买：</strong> 初始无特殊。正常购买刀马。</li>
+                          <li><strong>被动（吸血）：</strong> 只要使用【刀】发起攻击（无论最终是否破防造成伤害），自身立刻回复 1 点血量（不超过血量上限）。</li>
+                        </ul>
+                      </div>
+
+                      <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-xl border border-gray-200 dark:border-gray-600 border-l-4 border-l-red-500">
+                        <h4 className="font-bold text-lg mb-2 flex items-center gap-2">② 拳击手 (Boxer)</h4>
+                        <ul className="list-disc pl-5 space-y-1 text-sm">
+                          <li><strong>初始与购买：</strong> 初始自带 买三种拳套权。<strong>无衣服，无法使用刀和马。</strong> <br/> 🥉 铜拳套 (1步) / 🥈 银拳套 (2步) / 🥇 金拳套 (3步)</li>
+                          <li><strong>攻击：</strong> 消耗 1步，选择佩戴的一种拳套进行近战攻击。</li>
+                          <li><strong>伤害：</strong> 基础值 + (同种数量 - 1)。铜=1 / 银=2 / 金=3 (<strong>真实伤害</strong>)。</li>
                         </ul>
                       </div>
 
                       <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-xl border border-gray-200 dark:border-gray-600">
-                        <h4 className="font-bold text-lg mb-2 flex items-center gap-2">② 弓箭手 (Archer)</h4>
+                        <h4 className="font-bold text-lg mb-2 flex items-center gap-2">③ 爆破手 (Bomber)</h4>
                         <ul className="list-disc pl-5 space-y-1 text-sm">
-                          <li><strong>初始与购买：</strong> 开局自带【买弓权】。可购买 🏹 弓 (消耗2步) 和 🎯 箭矢 (消耗1步，<strong>必须先拥有弓才能购买</strong>)。</li>
-                          <li><strong>射击：</strong> 消耗 1步+1支箭。攻击范围为同位置或相邻位置（中央与城池互为相邻）。</li>
+                          <li><strong>初始与购买：</strong> 初始无特殊。正常购买刀马。</li>
+                          <li><strong>埋弹：</strong> 消耗 1步。在脚下放置炸弹（全场可见，可堆叠）。</li>
+                          <li><strong>引爆：</strong> 消耗 1步。瞬间引爆自己场上所有的炸弹。</li>
+                          <li><strong>伤害：</strong> 每颗炸弹造成 1 点<strong>真实伤害</strong>。</li>
+                        </ul>
+                      </div>
+
+                      <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-xl border border-gray-200 dark:border-gray-600">
+                        <h4 className="font-bold text-lg mb-2 flex items-center gap-2">④ 弓箭手 (Archer)</h4>
+                        <ul className="list-disc pl-5 space-y-1 text-sm">
+                          <li><strong>初始与购买：</strong> 初始自带 买弓权 x1。可购买 🏹 弓 (2步) 和 🎯 箭矢 (1步，必须先拥有弓才能购买)。</li>
+                          <li><strong>射击：</strong> 消耗 1步 + 1支箭（需持有弓）。</li>
+                          <li><strong>范围：</strong> 当前位置 或 相邻区域（中央与城池互为相邻）。</li>
                           <li><strong>伤害：</strong> 1 + (弓数量 - 1)。</li>
                         </ul>
                       </div>
 
                       <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-xl border border-gray-200 dark:border-gray-600">
-                        <h4 className="font-bold text-lg mb-2 flex items-center gap-2">③ 火箭兵 (Rocketeer)</h4>
+                        <h4 className="font-bold text-lg mb-2 flex items-center gap-2">⑤ 胖子 (Fatty)</h4>
                         <ul className="list-disc pl-5 space-y-1 text-sm">
-                          <li><strong>初始与购买：</strong> 开局自带【买火箭筒权】。可购买 🚀 火箭筒 (消耗2步) 和 📦 火箭弹 (消耗1步，<strong>必须先拥有火箭筒才能购买</strong>)。</li>
-                          <li><strong>开火：</strong> 消耗 1步+1发弹药。指定全图任意位置，下回合所有人行动结束后生效。</li>
+                          <li><strong>初始与购买：</strong> 开局自带【脂肪衣】（提供1点防御，不可被抢夺，死后消失）。<strong>无法使用马。</strong></li>
+                          <li><strong>抱人移动：</strong> 移动时消耗<strong>1步</strong>，可以强制拖拽当前位置的任意一人，与你一起移动到相邻位置。</li>
+                          <li><strong>被动（体量压制）：</strong> 每回合行动结束时，与其位于同一座城池的其他玩家扣 1 滴血（如果胖子在中央则不触发）。</li>
+                        </ul>
+                      </div>
+
+                      <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-xl border border-gray-200 dark:border-gray-600">
+                        <h4 className="font-bold text-lg mb-2 flex items-center gap-2">⑥ 火箭兵 (Rocketeer)</h4>
+                        <ul className="list-disc pl-5 space-y-1 text-sm">
+                          <li><strong>初始与购买：</strong> 初始自带 买火箭筒权 x1。可购买 🚀 火箭筒 (2步) 和 📦 火箭弹 (1步，必须先拥有火箭筒才能购买)。</li>
+                          <li><strong>开火：</strong> 消耗 1步 + 1发火箭弹（需持有火箭筒）。</li>
+                          <li><strong>范围：</strong> 全图任意指定区域（延时AOE，下回合结束时生效）。</li>
                           <li><strong>伤害：</strong> 造成 2 + (火箭筒数量 - 1) 点<strong>真实伤害</strong>。</li>
                         </ul>
                       </div>
 
-                      <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-xl border border-gray-200 dark:border-gray-600">
-                        <h4 className="font-bold text-lg mb-2 flex items-center gap-2">④ 爆破手 (Bomber)</h4>
-                        <ul className="list-disc pl-5 space-y-1 text-sm">
-                          <li><strong>初始与购买：</strong> 开局无特殊购买权。炸弹无需购买，可直接使用（不限次数）。</li>
-                          <li><strong>埋弹/引爆：</strong> 消耗 1步在脚下埋置炸弹；消耗 1步瞬间引爆全场所有自己放置的炸弹。</li>
-                          <li><strong>伤害：</strong> 每颗炸弹造成 1 点<strong>真实伤害</strong>。</li>
-                        </ul>
-                      </div>
-
                       <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-xl border border-gray-200 dark:border-gray-600 border-l-4 border-l-red-500">
-                        <h4 className="font-bold text-lg mb-2 flex items-center gap-2">⑤ 拳击手 (Boxer)</h4>
+                        <h4 className="font-bold text-lg mb-2 flex items-center gap-2">⑦ 武僧 (Monk)</h4>
                         <ul className="list-disc pl-5 space-y-1 text-sm">
-                          <li><strong>初始与购买：</strong> 开局自带三种【买拳套权】<strong>（购买分别消耗：铜拳套 1步 / 银拳套 2步 / 金拳套 3步）</strong>。<strong className="text-red-600 dark:text-red-400">极度弱点：开局无衣服，且永久无法装备/使用衣服（受击无减伤），无法使用刀和马。</strong></li>
-                          <li><strong>攻击：</strong> 消耗 1步进行近战攻击(同位置)。</li>
-                          <li><strong>伤害：</strong> 基础值+(同种数量-1)。铜拳套 1点 / 银拳套 2点 / 金拳套 3点(<strong>均为真实伤害</strong>)。</li>
-                        </ul>
-                      </div>
-
-                      <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-xl border border-gray-200 dark:border-gray-600 border-l-4 border-l-red-500">
-                        <h4 className="font-bold text-lg mb-2 flex items-center gap-2">⑥ 武僧 (Monk)</h4>
-                        <ul className="list-disc pl-5 space-y-1 text-sm">
-                          <li><strong>初始与购买：</strong> 开局自带三种【买腰带权】<strong>（购买分别消耗：铜腰带 1步 / 银腰带 2步 / 金腰带 3步）</strong>。<strong className="text-red-600 dark:text-red-400">极度弱点：开局无衣服，且永久无法装备/使用衣服（受击无减伤），无法使用刀和马。</strong></li>
-                          <li><strong>攻击：</strong> 消耗 1步攻击。<strong>真实伤害 + 强制踢飞位移</strong>（如果目标在中央，会被踢回其自己的城池；如果目标在城池，会被踢回中央）。</li>
-                          <li><strong>伤害/范围：</strong> 铜腰带 1点(仅限同位置) / 银腰带 1点(同位置或相邻位置均可) / 金腰带 2点(仅限同位置)。</li>
+                          <li><strong>初始与购买：</strong> 初始自带 买三种腰带权。<strong>无衣服，无法使用刀和马。</strong> <br/> 🥉 铜腰带 (1步) / 🥈 银腰带 (2步) / 🥇 金腰带 (3步)</li>
+                          <li><strong>攻击：</strong> 消耗 1步，选择佩戴的一种腰带攻击。<strong>真实伤害 + 强制踢飞位移</strong>（中央踢回城，城池踢回中央）。</li>
+                          <li><strong>伤害与范围：</strong> 铜=1(仅近战) / 银=1(可打相邻区域) / 金=2(仅近战)。</li>
                         </ul>
                       </div>
 
                       <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-xl border border-gray-200 dark:border-gray-600">
-                        <h4 className="font-bold text-lg mb-2 flex items-center gap-2">⑦ 外星人 (Alien)</h4>
+                        <h4 className="font-bold text-lg mb-2 flex items-center gap-2">⑧ 外星人 (Alien)</h4>
                         <ul className="list-disc pl-5 space-y-1 text-sm">
-                          <li><strong>初始：</strong> 开局自带【买UFO权】。<strong>无法使用马。</strong></li>
-                          <li><strong>主动瞬移：</strong> 只要拥有UFO，消耗 1步可瞬移至全图任意位置。<strong>（每回合限使用1次，拥有多个飞碟也是1次）</strong>。</li>
+                          <li><strong>初始与购买：</strong> 初始自带 买UFO权 x1。<strong>无法使用马。</strong> 可购买 🛸 UFO (2步)。</li>
+                          <li><strong>主动瞬移：</strong> 只要拥有UFO，消耗 1步即可移动到地图上任意位置。<strong>每回合限使用1次（即使拥有多个UFO也只算1次）</strong>。</li>
                         </ul>
                       </div>
 
                       <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-xl border border-gray-200 dark:border-gray-600">
-                        <h4 className="font-bold text-lg mb-2 flex items-center gap-2">⑧ 胖子 (Fatty)</h4>
+                        <h4 className="font-bold text-lg mb-2 flex items-center gap-2">⑨ 法师 (Mage)</h4>
                         <ul className="list-disc pl-5 space-y-1 text-sm">
-                          <li><strong>初始：</strong> 开局自带专属道具【脂肪衣】(提供 1 点减伤防御，不可被抢夺，死亡后自动销毁)。<strong>无法使用马。</strong></li>
-                          <li><strong>技能：</strong> 消耗 <strong>1步</strong>，可强制拖拽当前位置的任意一人，与你一同移动到相邻位置。</li>
-                        </ul>
-                      </div>
-
-                      <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-xl border border-gray-200 dark:border-gray-600">
-                        <h4 className="font-bold text-lg mb-2 flex items-center gap-2">⑨ 吸血鬼 (Vampire)</h4>
-                        <ul className="list-disc pl-5 space-y-1 text-sm">
-                          <li><strong>初始：</strong> 开局无特殊购买权。可正常购买刀和马。</li>
-                          <li><strong>被动：</strong> 只要使用【刀】发起攻击（无论最终是否被护甲格挡防破），自身立刻回复 1 点血量。</li>
+                          <li><strong>初始与购买：</strong> 无特殊初始。可无限购买 🧪 药水 (消耗1步，且不占物品栏)。</li>
+                          <li><strong>技能：</strong> 延时回血。指定全图任意位置（中央或某人城池）投掷，下回合所有人行动结束后生效。</li>
+                          <li><strong>效果：</strong> 该位置上的所有人回复 X 点血量（X由施法时投入的额外步数决定）。</li>
+                          <li><strong>被动（全职高手）：</strong> 法师只要拥有其他职业的专属道具，就可以无视职业限制使用其技能（如射箭、传送、拳套等），并在拥有对应武器时可购买专属弹药。</li>
                         </ul>
                       </div>
                     </div>

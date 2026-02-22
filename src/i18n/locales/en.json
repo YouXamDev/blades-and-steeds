@@ -52,6 +52,7 @@
     "advancedSettings": "⚙️ Advanced Settings",
     "initialHealth": "Initial Health",
     "classOptionsCount": "Class Options Count",
+    "maxPlayersPerClass": "Max Players per Class",
     "removePlayer": "Remove Player"
   },
   "game": {

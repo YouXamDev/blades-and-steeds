@@ -52,6 +52,7 @@
     "advancedSettings": "⚙️ 房间高级设置",
     "initialHealth": "玩家初始血量",
     "classOptionsCount": "每人可选职业数",
+    "maxPlayersPerClass": "同职业人数上限",
     "removePlayer": "移除玩家"
   },
   "game": {

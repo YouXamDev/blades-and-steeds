@@ -76,6 +76,7 @@ export const ActionType = {
   PUNCH: 'punch',
   KICK: 'kick',
   HUG: 'hug',
+  TELEPORT: 'teleport',
   USE_POTION: 'use_potion',
   CLAIM_LOOT: 'claim_loot',
   FATTY_PASSIVE_DAMAGE: 'fatty_passive_damage',
@@ -164,6 +165,7 @@ export type ActionResult =
   | { type: 'place_bomb'; location: { type: LocationType; cityId?: string } }
   | { type: 'detonate_bomb'; victims: Array<{ name: string; damage: number; killed: boolean }> }
   | { type: 'hug'; target: string; targetName: string; location: { type: LocationType; cityId?: string } }
+  | { type: 'teleport'; location: { type: LocationType; cityId?: string } }
   | { type: 'fatty_passive_damage'; target: string; targetName: string; damage: number; killed: boolean };
 
 // Action in queue
@@ -179,6 +181,10 @@ export interface GameAction {
   item?: ItemType;
   purchaseRight?: PurchaseRightType;
   value?: number; // For actions that need a value (e.g., potion steps)
+  location?: {
+    type: LocationType;
+    cityId?: string;
+  };
 }
 
 // Action log entry

@@ -27,6 +27,8 @@ export function ActionLog({ logs, currentPlayerId, players }: ActionLogProps) {
       case 'punch': return '👊';
       case 'kick': return '🦵';
       case 'hug': return '🤗';
+      case 'teleport': return '🛸';
+      case 'fatty_passive_damage': return '👑';
       case 'use_potion': return '🧪';
       default: return '⚡';
     }
@@ -93,6 +95,17 @@ export function ActionLog({ logs, currentPlayerId, players }: ActionLogProps) {
         
         case 'hug':
           return t('log.hug', { target: result.targetName, city: getCityName(result.location.cityId) });
+
+        case 'teleport':
+          return result.location.type === 'central'
+            ? t('log.teleportCentral')
+            : t('log.teleportCity', { city: getCityName(result.location.cityId) });
+
+        case 'fatty_passive_damage':
+          return t('log.fattyPassiveDamage', {
+            target: result.targetName,
+            killed: result.killed ? t('log.killed') : '',
+          });
       }
     }
     return t(`action.${log.type}`);

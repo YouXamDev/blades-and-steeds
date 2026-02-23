@@ -160,7 +160,9 @@
     "detonate_bomb": "Detonate Bomb",
     "punch": "Punch",
     "kick": "Kick",
-    "hug": "Hug Move"
+    "hug": "Hug Move",
+    "teleport": "Teleport",
+    "fatty_passive_damage": "Fatty Passive Damage"
   },
   "log": {
     "movedToCentral": "Moved to central",
@@ -201,7 +203,10 @@
     "placeBomb": "Placed a bomb at {{city}}",
     "detonateBombEmpty": "Detonated bombs, but hit no one",
     "detonateBombHit": "Detonated bombs, hitting: {{victims}}",
-    "hug": "Hugged {{target}} and moved to {{city}}"
+    "hug": "Hugged {{target}} and moved to {{city}}",
+    "teleportCentral": "Teleported to central",
+    "teleportCity": "Teleported to {{city}}",
+    "fattyPassiveDamage": "Passive: dealt 1 damage to {{target}}{{killed}}"
   },
   "ability": {
     "potionSteps": "Potion Steps",
@@ -218,7 +223,9 @@
     "needBelt": "Need Belt",
     "vampirePassive": "Passive: Heal 1HP on knife attack",
     "noBombsPlaced": "No bombs placed",
-    "hugCost": "Costs 1 steps"
+    "hugCost": "Costs 1 step",
+    "alienTeleportCost": "Teleport (1 step, once per turn)",
+    "alienTeleportUsed": "(used this turn)"
   },
   "location": {
     "central": "Central",

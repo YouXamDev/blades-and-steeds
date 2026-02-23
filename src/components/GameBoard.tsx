@@ -11,7 +11,7 @@ import {
   Heart
 } from 'lucide-react';
 import { StarMap } from './StarMap';
-import type { Player, GameAction, ItemType, Bomb as BombType, DelayedEffect, PurchaseRightType } from '../types/game';
+import type { Player, GameAction, ItemType, Bomb as BombType, DelayedEffect, PurchaseRightType, ActionLog } from '../types/game';
 
 function getPurchaseCost(item: PurchaseRightType): number {
   switch (item) {
@@ -38,9 +38,10 @@ interface GameBoardProps {
   delayedEffects?: DelayedEffect[];
   currentTurn?: number;
   isActionPending?: boolean;
+  actionLogs?: ActionLog[];
 }
 
-export function GameBoard({ currentPlayer, allPlayers, isMyTurn, currentTurnPlayerId, onAction, bombs, delayedEffects, currentTurn, isActionPending }: GameBoardProps) {
+export function GameBoard({ currentPlayer, allPlayers, isMyTurn, currentTurnPlayerId, onAction, bombs, delayedEffects, currentTurn, isActionPending, actionLogs }: GameBoardProps) {
   const { t } = useTranslation();
   const [potionSteps, setPotionSteps] = useState(1);
 
@@ -68,6 +69,9 @@ export function GameBoard({ currentPlayer, allPlayers, isMyTurn, currentTurnPlay
     );
   }
   const canMove = currentPlayer.stepsRemaining > 0 && !isActionPending;
+  const hasUsedTeleportThisTurn = (actionLogs || []).some(
+    log => log.turn === currentTurn && log.playerId === currentPlayer.id && log.type === 'teleport'
+  );
   const canBuy = currentPlayer.location.type === 'city' && 
                  currentPlayer.location.cityId === (currentPlayer.initialCity ?? currentPlayer.id) && 
                  currentPlayer.stepsRemaining > 0 &&
@@ -473,6 +477,37 @@ export function GameBoard({ currentPlayer, allPlayers, isMyTurn, currentTurnPlay
                 </div>
               )}
 
+              {/* Alien: Teleport */}
+              {currentPlayer.class === 'alien' && (
+                <div className="space-y-2">
+                  <p className="text-xs text-gray-600 dark:text-gray-400">
+                    🛸 {t('ability.alienTeleportCost')}
+                    {hasUsedTeleportThisTurn && (
+                      <span className="ml-2 text-orange-500">{t('ability.alienTeleportUsed')}</span>
+                    )}
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => onAction({ type: 'teleport', location: { type: 'central' } })}
+                      disabled={!canMove || hasUsedTeleportThisTurn}
+                      className="py-1 px-2 rounded bg-indigo-500 hover:bg-indigo-600 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white text-xs font-semibold cursor-pointer disabled:cursor-not-allowed"
+                    >
+                      {t('ability.toBeCentral')}
+                    </button>
+                    {allPlayers.filter(p => p.isAlive).map((p) => (
+                      <button
+                        key={p.id}
+                        onClick={() => onAction({ type: 'teleport', location: { type: 'city', cityId: p.initialCity ?? p.id } })}
+                        disabled={!canMove || hasUsedTeleportThisTurn}
+                        className="py-1 px-2 rounded bg-indigo-500 hover:bg-indigo-600 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white text-xs font-semibold truncate cursor-pointer disabled:cursor-not-allowed"
+                      >
+                        {p.name} {t('location.city').toLowerCase()}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Fatty: Hug Move */}
               {currentPlayer.class === 'fatty' && (
                 <div className="space-y-2">
@@ -489,7 +524,7 @@ export function GameBoard({ currentPlayer, allPlayers, isMyTurn, currentTurnPlay
                           {currentPlayer.location.type === 'city' && (
                             <button
                               onClick={() => onAction({ type: 'hug', target: player.id, targetLocation: { type: 'central' } })}
-                              disabled={!canMove || currentPlayer.stepsRemaining < 2}
+                              disabled={!canMove}
                               className="py-1 px-2 rounded bg-pink-500 hover:bg-pink-600 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white text-xs font-semibold cursor-pointer disabled:cursor-not-allowed"
                             >
                               {t('ability.toBeCentral')}
@@ -499,7 +534,7 @@ export function GameBoard({ currentPlayer, allPlayers, isMyTurn, currentTurnPlay
                             <button
                               key={p.id}
                               onClick={() => onAction({ type: 'hug', target: player.id, targetLocation: { type: 'city', cityId: p.id } })}
-                              disabled={!canMove || currentPlayer.stepsRemaining < 2}
+                              disabled={!canMove}
                               className="py-1 px-2 rounded bg-pink-500 hover:bg-pink-600 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white text-xs font-semibold truncate cursor-pointer disabled:cursor-not-allowed"
                             >
                               {p.name} {t('log.cityOf', { name: '' }).replace(p.name, '').trim()}

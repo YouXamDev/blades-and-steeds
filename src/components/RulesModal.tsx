@@ -343,7 +343,7 @@ export function RulesModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                         <h4 className="font-bold text-lg mb-2 flex items-center gap-2">⑧ Alien</h4>
                         <ul className="list-disc pl-5 space-y-1 text-sm">
                           <li><strong>Initial & Buy:</strong> Starts with [Knife Purchase Right]. <strong>Cannot use horses.</strong></li>
-                          <li><strong>No special active skill.</strong></li>
+                          <li><strong>Active Teleport (1 step, limit 1/turn):</strong> Can teleport to any location on the map each turn.</li>
                         </ul>
                       </div>
 
@@ -538,7 +538,7 @@ export function RulesModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                         <h4 className="font-bold text-lg mb-2 flex items-center gap-2">⑧ 外星人 (Alien)</h4>
                         <ul className="list-disc pl-5 space-y-1 text-sm">
                           <li><strong>初始与购买：</strong> 初始自带 买刀权 x1。<strong>无法使用马。</strong></li>
-                          <li><strong>无主动技能。</strong></li>
+                          <li><strong>主动瞬移（1步，每回合限 1 次）：</strong> 每回合可消耗 1 步眼移动到地图上任意位置。</li>
                         </ul>
                       </div>
 

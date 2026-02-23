@@ -210,7 +210,7 @@ export class GameRoom extends DurableObject<Env> {
       await this.handleClientMessage(ws, data);
     } catch (error) {
       console.error('Error handling message:', error);
-      this.sendError(ws, 'Invalid message format');
+      this.sendError(ws, '消息格式无效');
     }
   }
 
@@ -294,7 +294,7 @@ export class GameRoom extends DurableObject<Env> {
       case 'remove_player': await this.handleRemovePlayer(ws, message); break;
       case 'join_team': await this.handleJoinTeam(ws, message); break;
       default:
-        this.sendError(ws, 'Unknown message type');
+        this.sendError(ws, '未知消息类型');
     }
   }
 
@@ -329,15 +329,15 @@ export class GameRoom extends DurableObject<Env> {
 
   private async handleRemovePlayer(ws: WebSocket, message: { playerId: string; targetPlayerId: string }): Promise<void> {
     if (!this.gameState || this.gameState.phase !== 'waiting') {
-      this.sendError(ws, 'Can only remove players in waiting phase');
+      this.sendError(ws, '只能在等待阶段移除玩家');
       return;
     }
     if (message.playerId !== this.gameState.hostId) {
-      this.sendError(ws, 'Only host can remove players');
+      this.sendError(ws, '只有房主才能移除玩家');
       return;
     }
     if (message.targetPlayerId === this.gameState.hostId) {
-      this.sendError(ws, 'Cannot remove the host');
+      this.sendError(ws, '不能移除房主');
       return;
     }
 
@@ -359,7 +359,7 @@ export class GameRoom extends DurableObject<Env> {
 
   private async handleJoinTeam(ws: WebSocket, message: { playerId: string; teamId: number | null }): Promise<void> {
     if (!this.gameState || this.gameState.phase !== 'waiting') {
-      this.sendError(ws, 'Can only change teams in waiting phase');
+      this.sendError(ws, '只能在等待阶段更换队伍');
       return;
     }
     const player = this.gameState.players.get(message.playerId);
@@ -370,7 +370,7 @@ export class GameRoom extends DurableObject<Env> {
     if (message.teamId !== null) {
       const { teamCount } = this.gameState.settings;
       if (message.teamId < 1 || message.teamId > teamCount) {
-        this.sendError(ws, `Team ID must be between 1 and ${teamCount}`);
+        this.sendError(ws, `队伍编号必须在 1 到 ${teamCount} 之间`);
         return;
       }
     }
@@ -441,11 +441,11 @@ export class GameRoom extends DurableObject<Env> {
   private async handleReturnToRoom(ws: WebSocket, message: { playerId: string }): Promise<void> {
     if (!this.gameState) return;
     if (message.playerId !== this.gameState.hostId) {
-      this.sendError(ws, 'Only host can return to room');
+      this.sendError(ws, '只有房主才能返回房间');
       return;
     }
     if (this.gameState.phase !== 'ended') {
-      this.sendError(ws, 'Game must be ended to return to room');
+      this.sendError(ws, '游戏必须结束后才能返回房间');
       return;
     }
 
@@ -553,7 +553,7 @@ export class GameRoom extends DurableObject<Env> {
 
     // Check if room is full
     if (state.players.size >= state.settings.maxPlayers) {
-      this.sendError(ws, 'Room is full');
+      this.sendError(ws, '房间已满');
       return;
     }
 
@@ -589,7 +589,7 @@ export class GameRoom extends DurableObject<Env> {
 
   private async handleSelectClass(ws: WebSocket, message: { playerId: string; selectedClass: PlayerClass }): Promise<void> {
     if (!this.gameState || this.gameState.phase !== 'class_selection') {
-      this.sendError(ws, 'Not in class selection phase');
+      this.sendError(ws, '当前不在职业选择阶段');
       return;
     }
 
@@ -600,17 +600,17 @@ export class GameRoom extends DurableObject<Env> {
     }
     
     if (this.gameState.currentClassSelectionPlayerId !== message.playerId) {
-      this.sendError(ws, 'Not your turn to select class');
+      this.sendError(ws, '还没轮到你选择职业');
       return;
     }
 
     if (!player.classOptions) {
-      this.sendError(ws, 'No class options available');
+      this.sendError(ws, '没有可选的职业');
       return;
     }
 
     if (!player.classOptions.includes(message.selectedClass)) {
-      this.sendError(ws, 'Invalid class selection');
+      this.sendError(ws, '无效的职业选择');
       return;
     }
 
@@ -620,7 +620,7 @@ export class GameRoom extends DurableObject<Env> {
 
     const limit = this.gameState.settings.maxPlayersPerClass ?? 2;
     if (classCount >= limit) {
-      this.sendError(ws, 'Class limit reached');
+      this.sendError(ws, '该职业人数已达上限');
       return;
     }
 
@@ -681,17 +681,17 @@ export class GameRoom extends DurableObject<Env> {
     }
 
     if (message.playerId !== this.gameState.hostId) {
-      this.sendError(ws, 'Only host can start the game');
+      this.sendError(ws, '只有房主才能开始游戏');
       return;
     }
 
     if (this.gameState.players.size < this.gameState.settings.minPlayers) {
-      this.sendError(ws, 'Not enough players');
+      this.sendError(ws, '玩家人数不足');
       return;
     }
 
     if (this.gameState.phase !== 'waiting') {
-      this.sendError(ws, 'Game already started');
+      this.sendError(ws, '游戏已经开始');
       return;
     }
 
@@ -741,7 +741,7 @@ export class GameRoom extends DurableObject<Env> {
 
   private async handlePerformAction(ws: WebSocket, message: any): Promise<void> {
     if (!this.gameState || this.gameState.phase !== 'playing') {
-      this.sendError(ws, 'Game not in progress');
+      this.sendError(ws, '游戏不在进行中');
       return;
     }
 
@@ -750,13 +750,13 @@ export class GameRoom extends DurableObject<Env> {
     const isFreeAction = action.type === 'claim_loot';
     
     if (!isFreeAction && this.gameState.currentPlayerId !== playerId) {
-      this.sendError(ws, 'Not your turn');
+      this.sendError(ws, '还没轮到你');
       return;
     }
 
     const player = this.gameState.players.get(playerId);
     if (!player || (!player.isAlive && action.type !== 'claim_loot')) {
-      this.sendError(ws, 'Player not found or not alive');
+      this.sendError(ws, '玩家不存在或已阵亡');
       return;
     }
 
@@ -772,7 +772,7 @@ export class GameRoom extends DurableObject<Env> {
     }
 
     if (!isFreeAction && player.stepsRemaining < stepCost) {
-      this.sendError(ws, `Not enough steps (Need ${stepCost})`);
+      this.sendError(ws, `步数不足（需要 ${stepCost} 步）`);
       return;
     }
 
@@ -794,9 +794,10 @@ export class GameRoom extends DurableObject<Env> {
         case 'place_bomb': actionResult = await this.handlePlaceBombAction(player, action); break;
         case 'detonate_bomb': actionResult = await this.handleDetonateBombAction(player, action); break;
         case 'hug': actionResult = await this.handleHugAction(player, action); break;
+        case 'teleport': actionResult = await this.handleTeleportAction(player, action); break;
         case 'claim_loot': actionResult = await this.handleClaimLootAction(player, action); break;
         default:
-          this.sendError(ws, 'Unknown action type');
+          this.sendError(ws, '未知操作类型');
           return;
       }
 
@@ -838,7 +839,7 @@ export class GameRoom extends DurableObject<Env> {
       this.broadcast({ type: 'room_state', state: this.serializeGameState() });
     } catch (error: any) {
       console.error('Action failed:', error);
-      this.sendError(ws, error.message || 'Action failed');
+      this.sendError(ws, error.message || '操作失败');
     }
   }
 
@@ -850,7 +851,7 @@ export class GameRoom extends DurableObject<Env> {
     );
 
     if (pendingIndex === -1) {
-      throw new Error('No pending loot found for this target');
+      throw new Error('未找到对应的战利品');
     }
 
     const pendingLoot = this.gameState!.pendingLoots[pendingIndex];
@@ -901,18 +902,18 @@ export class GameRoom extends DurableObject<Env> {
     // Verify in own (or team's) city
     const homeCityId = player.initialCity ?? player.id;
     if (player.location.type !== 'city' || player.location.cityId !== homeCityId) {
-      throw new Error('Can only purchase in your own city');
+      throw new Error('只能在自己的城池中购买');
     }
 
     if (!action.purchaseRight) {
-      throw new Error('Purchase right required');
+      throw new Error('缺少购买权参数');
     }
 
     if (action.purchaseRight === 'arrow' && !player.inventory.includes('bow')) {
-      throw new Error('Must have a bow to purchase arrows');
+      throw new Error('购买箭矢需要先拥有弓');
     }
     if (action.purchaseRight === 'rocket_ammo' && !player.inventory.includes('rocket_launcher')) {
-      throw new Error('Must have a rocket launcher to purchase rocket ammo');
+      throw new Error('购买火箭弹需要先拥有火箭筒');
     }
 
     // Check if player has the purchase right
@@ -928,7 +929,7 @@ export class GameRoom extends DurableObject<Env> {
     }
 
     if (!hasRight) {
-      throw new Error('You do not have this purchase right');
+      throw new Error('你没有该物品的购买权');
     }
 
     // Consumables can be purchased multiple times (don't remove purchase right)
@@ -974,12 +975,12 @@ export class GameRoom extends DurableObject<Env> {
 
     // 职业限制 (修改：拳击手和武僧不能用刀)
     if (['boxer', 'monk'].includes(player.class || '')) {
-      throw new Error('Your class cannot use knives');
+      throw new Error('你的职业无法使用刀');
     }
 
     // Check has knife
     if (!player.inventory.includes('knife')) {
-      throw new Error('You do not have a knife');
+      throw new Error('你没有刀');
     }
 
     // Calculate damage
@@ -1033,17 +1034,17 @@ export class GameRoom extends DurableObject<Env> {
     // Check in city
     if (player.location.type !== 'city' || target.location.type !== 'city' ||
         player.location.cityId !== target.location.cityId) {
-      throw new Error('Both must be in same city');
+      throw new Error('双方必须在同一城池（马踢）');
     }
 
     // 职业限制 (修改：拳击手/武僧/外星人/胖子不能用马)
     if (['boxer', 'monk', 'alien', 'fatty'].includes(player.class || '')) {
-      throw new Error('Your class cannot use horses');
+      throw new Error('你的职业无法使用马');
     }
 
     // Check has horse
     if (!player.inventory.includes('horse')) {
-      throw new Error('You do not have a horse');
+      throw new Error('你没有马');
     }
 
     // Calculate damage
@@ -1103,7 +1104,7 @@ export class GameRoom extends DurableObject<Env> {
 
     // Check if target has items
     if (lootableInventory.length === 0) {
-      throw new Error('Target has no robbable items');
+      throw new Error('目标没有可抢夺的物品');
     }
 
     let stolenItem: ItemType | undefined;
@@ -1111,11 +1112,11 @@ export class GameRoom extends DurableObject<Env> {
     // If specific item is specified, try to steal it
     if (action.item) {
       if (action.item === 'fat') {
-        throw new Error('Cannot rob Fat Suit');
+        throw new Error('脂肪衣无法被抢夺');
       }
       // 检查物品是否在可抢列表中
       if (!lootableInventory.includes(action.item)) {
-         throw new Error('Item not found or not robbable');
+         throw new Error('该物品不存在或无法抢夺');
       }
       
       const itemIndex = target.inventory.indexOf(action.item);
@@ -1153,15 +1154,11 @@ export class GameRoom extends DurableObject<Env> {
   // Mage: Use potion (delayed heal)
   private async handleUsePotionAction(player: Player, action: any): Promise<ActionResult> {
     if (player.class !== 'mage') {
-      throw new Error('Only mages can use potions');
+      throw new Error('只有法师才能使用药水');
     }
 
     if (!action.targetLocation) {
-      throw new Error('Target location required');
-    }
-
-    if (!action.value || action.value < 1) {
-      throw new Error('Potion value must be at least 1');
+      throw new Error('需要指定目标位置（药水）');
     }
 
     // Add delayed effect (修改：记录为下一轮结束时生效)
@@ -1184,7 +1181,7 @@ export class GameRoom extends DurableObject<Env> {
   // Archer: Shoot arrow
   private async handleShootArrowAction(player: Player, action: any): Promise<ActionResult> {
     if (player.class !== 'archer' && player.class !== 'mage') {
-      throw new Error('Only archers (or mages) can shoot arrows');
+      throw new Error('只有弓箭手（或法师）才能射箭');
     }
 
     // 法师每回合只能借用一次其他职业技能
@@ -1210,13 +1207,13 @@ export class GameRoom extends DurableObject<Env> {
     // Check has bow
     const bowCount = player.inventory.filter(i => i === 'bow').length;
     if (bowCount === 0) {
-      throw new Error('You do not have a bow');
+      throw new Error('你没有弓');
     }
 
     // Check has arrow
     const arrowIndex = player.inventory.indexOf('arrow');
     if (arrowIndex === -1) {
-      throw new Error('You do not have arrows');
+      throw new Error('你没有箭矢');
     }
 
     // Consume arrow
@@ -1263,7 +1260,7 @@ export class GameRoom extends DurableObject<Env> {
   // Rocketeer: Launch rocket (delayed AOE)
   private async handleLaunchRocketAction(player: Player, action: any): Promise<ActionResult> {
     if (player.class !== 'rocketeer' && player.class !== 'mage') {
-      throw new Error('Only rocketeers (or mages) can launch rockets');
+      throw new Error('只有火箭兵（或法师）才能发射火箭');
     }
 
     // 法师每回合只能借用一次其他职业技能
@@ -1284,13 +1281,13 @@ export class GameRoom extends DurableObject<Env> {
     // Check has rocket launcher
     const launcherCount = player.inventory.filter(i => i === 'rocket_launcher').length;
     if (launcherCount === 0) {
-      throw new Error('You do not have a rocket launcher');
+      throw new Error('你没有火箭筒');
     }
 
     // Check has rocket ammo
     const ammoIndex = player.inventory.indexOf('rocket_ammo');
     if (ammoIndex === -1) {
-      throw new Error('You do not have rocket ammo');
+      throw new Error('你没有火箭弹');
     }
 
     // Consume ammo
@@ -1317,7 +1314,7 @@ export class GameRoom extends DurableObject<Env> {
   // Bomber: Place bomb
   private async handlePlaceBombAction(player: Player, _action: any): Promise<ActionResult> {
     if (player.class !== 'bomber') {
-      throw new Error('Only bombers can place bombs');
+      throw new Error('只有爆破手才能放置炸弹');
     }
 
     // Place bomb at current location, merging with existing bomb from same player if present
@@ -1346,12 +1343,12 @@ export class GameRoom extends DurableObject<Env> {
   // Bomber: Detonate all bombs
   private async handleDetonateBombAction(player: Player, _action: any): Promise<ActionResult> {
     if (player.class !== 'bomber') {
-      throw new Error('Only bombers can detonate bombs');
+      throw new Error('只有爆破手才能引爆炸弹');
     }
 
     const playerBombs = this.gameState!.bombs.filter(b => b.playerId === player.id);
     if (playerBombs.length === 0) {
-      throw new Error('You have no bombs to detonate');
+      throw new Error('你没有可引爆的炸弹');
     }
 
     const victims: Array<{ name: string; damage: number; killed: boolean }> = [];
@@ -1394,7 +1391,7 @@ export class GameRoom extends DurableObject<Env> {
   // Boxer: Punch attack
   private async handlePunchAction(player: Player, action: any): Promise<ActionResult> {
     if (player.class !== 'boxer' && player.class !== 'mage') {
-      throw new Error('Only boxers (or mages) can punch');
+      throw new Error('只有拳击手（或法师）才能拳击');
     }
 
     // 法师每回合只能借用一次其他职业技能
@@ -1426,11 +1423,11 @@ export class GameRoom extends DurableObject<Env> {
     // 需指定使用的拳套 (修改：必须指定拳套类型，伤害不叠加)
     const gloveType = action.item;
     if (!['bronze_glove', 'silver_glove', 'gold_glove'].includes(gloveType)) {
-      throw new Error('Must specify a glove to use');
+      throw new Error('请指定要使用的拳套');
     }
 
     if (!player.inventory.includes(gloveType)) {
-      throw new Error('You do not have this glove');
+      throw new Error('你没有该拳套');
     }
 
     // Calculate damage (true damage, fixed value per glove type)
@@ -1461,7 +1458,7 @@ export class GameRoom extends DurableObject<Env> {
   // Monk: Kick attack (with knock back)
   private async handleKickAction(player: Player, action: any): Promise<ActionResult> {
     if (player.class !== 'monk' && player.class !== 'mage') {
-      throw new Error('Only monks (or mages) can kick');
+      throw new Error('只有武僧（或法师）才能踢击');
     }
 
     // 法师每回合只能借用一次其他职业技能
@@ -1481,17 +1478,15 @@ export class GameRoom extends DurableObject<Env> {
 
     const target = this.gameState!.players.get(action.target);
     if (!target || !target.isAlive) {
-      throw new Error('Target not found or not alive');
+      throw new Error('目标不存在或已阵亡（踢击）');
     }
-
-    // 需指定使用的腰带 (修改：必须指定腰带)
     const beltType = action.item;
     if (!['bronze_belt', 'silver_belt', 'gold_belt'].includes(beltType)) {
-      throw new Error('Must specify a belt to use');
+      throw new Error('请指定要使用的腰带');
     }
 
     if (!player.inventory.includes(beltType)) {
-      throw new Error('You do not have this belt');
+      throw new Error('你没有该腰带');
     }
 
     // 范围校验 (修改：银腰带可远程)
@@ -1503,12 +1498,12 @@ export class GameRoom extends DurableObject<Env> {
        const isAdjacent = (player.location.type === 'central' && target.location.type === 'city') ||
                           (player.location.type === 'city' && target.location.type === 'central');
        if (!isSameLocation && !isAdjacent) {
-         throw new Error('Target out of range (Silver belt hits adjacent)');
+         throw new Error('目标超出范围（银腰带可打相邻位置）');
        }
     } else {
        // Bronze/Gold: must be same location
        if (!isSameLocation) {
-         throw new Error('Target must be at same location');
+         throw new Error('目标必须在同一位置（踢击）');
        }
     }
 
@@ -1545,17 +1540,38 @@ export class GameRoom extends DurableObject<Env> {
     };
   }
 
+  private async handleTeleportAction(player: Player, action: any): Promise<ActionResult> {
+    if (player.class !== 'alien') {
+      throw new Error('只有外星人才能瞬移');
+    }
+
+    // 每回合限一次
+    const hasUsed = this.gameState!.actionLogs.some(
+      log => log.turn === this.gameState!.currentTurn && log.playerId === player.id && log.type === 'teleport'
+    );
+    if (hasUsed) {
+      throw new Error('外星人每回合只能瞬移一次');
+    }
+
+    if (!action.location) {
+      throw new Error('需要指定目标位置');
+    }
+
+    player.location = action.location;
+
+    return {
+      type: 'teleport',
+      location: action.location,
+    };
+  }
+
   private async handleHugAction(player: Player, action: any): Promise<ActionResult> {
     if (player.class !== 'fatty') {
-      throw new Error('Only Fatty can hug');
+      throw new Error('只有胖子才能抱人');
     }
 
     if (!action.target) {
-      throw new Error('Target required');
-    }
-
-    if (!action.targetLocation) {
-      throw new Error('Target location required');
+      throw new Error('请选择目标（抱人）');
     }
 
     const target = this.gameState!.players.get(action.target);
@@ -1572,7 +1588,7 @@ export class GameRoom extends DurableObject<Env> {
                                 (player.location.type === 'city' && action.targetLocation.type === 'central');
     
     if (!isTargetLocAdjacent) {
-      throw new Error('Can only hug-move to adjacent location');
+      throw new Error('只能抱到相邻位置（中央↔城池）');
     }
 
     player.location = action.targetLocation;

@@ -654,6 +654,7 @@ export function GameRoom() {
                   delayedEffects={gameState.delayedEffects}
                   currentTurn={gameState.currentTurn}
                   isActionPending={isActionPending}
+                  actionLogs={gameState.actionLogs}
                 />
               </div>
             </div>

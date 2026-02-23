@@ -713,6 +713,89 @@ export function GameRoom() {
                 <h3 className="text-xl font-semibold mb-4 text-center text-gray-900 dark:text-white">
                   {t('game.finalRankings')}
                 </h3>
+
+                {gameState.settings.teamMode ? (() => {
+                  // 团队模式：按队伍分组，以队内最佳排名作为队伍排名
+                  const allPlayers = Array.from(gameState.players.values()).filter((p: Player) => p.rank);
+                  const teamMap = new Map<number, Player[]>();
+                  for (const p of allPlayers) {
+                    const tid = p.teamId ?? 0;
+                    if (!teamMap.has(tid)) teamMap.set(tid, []);
+                    teamMap.get(tid)!.push(p);
+                  }
+                  const teamRanks = Array.from(teamMap.entries()).map(([tid, members]) => ({
+                    tid,
+                    teamRank: Math.min(...members.map(m => m.rank ?? 999)),
+                    members: members.sort((a, b) => (a.rank ?? 999) - (b.rank ?? 999)),
+                  })).sort((a, b) => a.teamRank - b.teamRank);
+
+                  return (
+                    <div className="space-y-4">
+                      {teamRanks.map(({ tid, teamRank, members }, index) => {
+                        const color = TEAM_COLORS[(tid - 1) % TEAM_COLORS.length];
+                        return (
+                          <div
+                            key={tid}
+                            className={`rounded-xl border-2 overflow-hidden ${
+                              index === 0
+                                ? 'border-yellow-400'
+                                : index === 1
+                                ? 'border-gray-400'
+                                : index === 2
+                                ? 'border-orange-400'
+                                : color.border
+                            }`}
+                          >
+                            {/* 队伍标题行 */}
+                            <div className={`flex items-center gap-3 px-4 py-3 ${
+                              index === 0
+                                ? 'bg-gradient-to-r from-yellow-100 to-yellow-50 dark:from-yellow-900/30 dark:to-yellow-800/20'
+                                : index === 1
+                                ? 'bg-gradient-to-r from-gray-100 to-gray-50 dark:from-gray-700 dark:to-gray-800'
+                                : index === 2
+                                ? 'bg-gradient-to-r from-orange-100 to-orange-50 dark:from-orange-900/30 dark:to-orange-800/20'
+                                : color.activeBg
+                            }`}>
+                              <div className="flex-shrink-0 w-9 h-9 rounded-full bg-white dark:bg-gray-800 flex items-center justify-center font-bold text-base text-gray-900 dark:text-white border border-gray-200 dark:border-gray-600">
+                                {teamRank}
+                              </div>
+                              <div className={`w-3 h-3 rounded-full flex-shrink-0 ${color.dot}`} />
+                              <span className={`font-bold text-base ${color.text}`}>
+                                {t('team.teamLabel', { n: tid })}
+                              </span>
+                              {index === 0 && (
+                                <span className="ml-auto flex-shrink-0 px-3 py-1 rounded-full bg-yellow-400 dark:bg-yellow-500 text-yellow-900 dark:text-yellow-100 text-sm font-bold">
+                                  🏆 {t('game.winner')}
+                                </span>
+                              )}
+                            </div>
+                            {/* 成员列表 */}
+                            <div className="divide-y divide-gray-100 dark:divide-gray-700">
+                              {members.map((player: Player) => (
+                                <div key={player.id} className="flex items-center gap-3 px-4 py-3 bg-white dark:bg-gray-800">
+                                  <span className="w-6 text-center text-xs text-gray-400 dark:text-gray-500 font-medium">#{player.rank}</span>
+                                  {player.avatar ? (
+                                    <img src={player.avatar} alt={player.name} className="w-9 h-9 rounded-full object-cover flex-shrink-0" />
+                                  ) : (
+                                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                                      {player.name[0]?.toUpperCase()}
+                                    </div>
+                                  )}
+                                  <div className="flex-1 min-w-0">
+                                    <p className="font-semibold text-gray-900 dark:text-white truncate">{player.name}</p>
+                                    {player.class && (
+                                      <p className="text-xs text-gray-500 dark:text-gray-400">{t(`class.${player.class}`)}</p>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })() : (
                 <div className="space-y-3">
                   {Array.from(gameState.players.values())
                     .filter((p: Player) => p.rank)
@@ -765,6 +848,7 @@ export function GameRoom() {
                       </div>
                     ))}
                 </div>
+                )}
               </div>
               
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

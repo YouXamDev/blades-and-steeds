@@ -75,35 +75,69 @@ export function RulesModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                       
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm">
-                          <h4 className="font-bold text-gray-900 dark:text-white mb-2 border-b dark:border-gray-700 pb-1">🏃 Movement & Map</h4>
-                          <p className="text-sm">You can only move between <strong>[Your City]</strong> and <strong>[Central]</strong>. Direct city-to-city travel is not allowed. (Costs 1 step).</p>
+                          <h4 className="font-bold text-gray-900 dark:text-white mb-2 border-b dark:border-gray-700 pb-1">� Game Setup</h4>
+                          <ul className="text-sm space-y-1">
+                            <li>• The host sets <strong>initial HP</strong> (default 15) and starts the game.</li>
+                            <li>• Before each game, every player <strong>picks a class</strong> from 3 random options — each class has unique skills and restrictions.</li>
+                            <li>• Turn order is randomized each game.</li>
+                          </ul>
                         </div>
-                        
+
                         <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm">
-                          <h4 className="font-bold text-gray-900 dark:text-white mb-2 border-b dark:border-gray-700 pb-1">⚡ Actions (Steps)</h4>
-                          <p className="text-sm">Every action costs "steps". Each turn you get <strong>1 base step + random bonus steps</strong>.</p>
+                          <h4 className="font-bold text-gray-900 dark:text-white mb-2 border-b dark:border-gray-700 pb-1">⚡ Steps & Your Turn</h4>
+                          <ul className="text-sm space-y-1">
+                            <li>• Every action costs <strong>"steps"</strong>.</li>
+                            <li>• Each turn you get: <strong>1 base step + randomly allocated bonus steps</strong>.</li>
+                            <li>• Bonus step pool = <em>number of alive players</em>, split randomly each round.</li>
+                            <li>• Spend all your steps or pass to end your turn.</li>
+                          </ul>
+                        </div>
+
+                        <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm">
+                          <h4 className="font-bold text-gray-900 dark:text-white mb-2 border-b dark:border-gray-700 pb-1">🏙️ Movement & Map</h4>
+                          <ul className="text-sm space-y-1">
+                            <li>• The map has <strong>[Your City]</strong>, <strong>[Other Cities]</strong>, and <strong>[Central]</strong>.</li>
+                            <li>• You can only move between your current spot and an adjacent one (1 step).</li>
+                            <li>• Cities ↔ Central only. No direct city-to-city travel.</li>
+                          </ul>
                         </div>
 
                         <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm">
                           <h4 className="font-bold text-gray-900 dark:text-white mb-2 border-b dark:border-gray-700 pb-1">⚔️ How to Attack</h4>
                           <ul className="text-sm space-y-2">
-                            <li>🗡️ <strong>Knife:</strong> Attack someone in the <em>same location</em>.</li>
-                            <li>🐴 <strong>Horse:</strong> Attack someone in the <em>same City</em> (Kicks them back to Central).</li>
+                            <li>🗡️ <strong>Knife:</strong> Must be in the <em>same location</em>. Deals 1 dmg per knife (reduced by shirts).</li>
+                            <li>🐴 <strong>Horse:</strong> Must be in the <em>same City</em> (not Central). Deals 3 dmg + kicks target to Central.</li>
                           </ul>
                         </div>
 
                         <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm">
-                          <h4 className="font-bold text-gray-900 dark:text-white mb-2 border-b dark:border-gray-700 pb-1">🛡️ Damage & Defense</h4>
-                          <p className="text-sm text-red-600 dark:text-red-400 font-semibold mb-1">Damage = Weapon Power - Target's Shirts + 1.</p>
-                          <p className="text-xs text-gray-500">(Note: Boxers and Monks permanently have 0 shirts/defense!).</p>
+                          <h4 className="font-bold text-gray-900 dark:text-white mb-2 border-b dark:border-gray-700 pb-1">🛡️ Damage Formula</h4>
+                          <p className="text-sm text-red-600 dark:text-red-400 font-semibold mb-1">Damage = Weapon Power − Target's Shirts + 1</p>
+                          <ul className="text-xs text-gray-500 space-y-1">
+                            <li>• Result ≤ 0 means 0 damage (defense held).</li>
+                            <li>• Boxers &amp; Monks have no shirts — permanently 0 defense!</li>
+                            <li>• Some class skills deal <strong>True Damage</strong> (ignores shirts entirely).</li>
+                          </ul>
                         </div>
 
-                        <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm md:col-span-2">
+                        <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm">
                           <h4 className="font-bold text-gray-900 dark:text-white mb-2 border-b dark:border-gray-700 pb-1">💰 Items & Loot</h4>
                           <ul className="text-sm space-y-1">
-                            <li>• <strong>Buy:</strong> Only in <em>Your Own City</em>. Must hold a Bow/Launcher to buy ammo.</li>
-                            <li>• <strong>Rob:</strong> Steal from someone in the <em>same location</em>.</li>
+                            <li>• <strong>Buy:</strong> Only in <em>Your Own City</em>. Costs 1 step + a purchase right.</li>
+                            <li>• Must own a Bow/Launcher before buying ammo.</li>
+                            <li>• <strong>Rob:</strong> Steal 1 item from someone at the same location (1 step).</li>
                             <li>• <strong>Kill Reward:</strong> Pick 1 free item from the dead player's loot!</li>
+                          </ul>
+                        </div>
+
+                        <div className="bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-xl shadow-sm md:col-span-2 border border-indigo-200 dark:border-indigo-700">
+                          <h4 className="font-bold text-gray-900 dark:text-white mb-2 border-b dark:border-gray-700 pb-1">👥 Team Mode (Optional)</h4>
+                          <ul className="text-sm space-y-1">
+                            <li>• <strong>Host</strong> can enable Team Mode in the lobby and set 2–8 teams.</li>
+                            <li>• All players must pick a team before the game starts.</li>
+                            <li>• Teammates <strong>share the same spawn city</strong> and must return there to buy.</li>
+                            <li>• <strong>Win condition changes:</strong> Game ends when only one team has survivors.</li>
+                            <li>• ⚠️ <strong>Friendly fire is ON</strong> — you can attack your own teammates!</li>
                           </ul>
                         </div>
                       </div>
@@ -151,6 +185,17 @@ export function RulesModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                             <li>• <strong>买东西：</strong> 必须跑回<em>自己的城池</em>才能买。（买弹药需先有对应武器）</li>
                             <li>• <strong>抢劫：</strong> 贴脸站一起，就能花 1 步抢别人的实物。</li>
                             <li>• <strong>舔包奖励：</strong> 击杀别人后，你可以免费从他的遗物里挑 1 件好东西！</li>
+                          </ul>
+                        </div>
+
+                        <div className="bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-xl shadow-sm md:col-span-2 border border-indigo-200 dark:border-indigo-700">
+                          <h4 className="font-bold text-gray-900 dark:text-white mb-2 border-b dark:border-gray-700 pb-1">👥 团队模式（可选）</h4>
+                          <ul className="text-sm space-y-1">
+                            <li>• <strong>房主</strong>可在等待室开启团队模式，并设定 2～8 支队伍。</li>
+                            <li>• 所有玩家必须在开局前选择队伍，否则无法开始。</li>
+                            <li>• 同队玩家<strong>共享出生城池</strong>，购买也需返回该城池。</li>
+                            <li>• <strong>胜利条件变更：</strong>场上存活玩家全部属于同一队伍时，该队伍获胜。</li>
+                            <li>• ⚠️ <strong>队友伤害开启</strong>——你可以攻击自己的队友！</li>
                           </ul>
                         </div>
                       </div>
@@ -248,6 +293,17 @@ export function RulesModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                         <h4 className="font-semibold text-gray-900 dark:text-white mb-2">2.3 Settlement Order</h4>
                         <ul className="list-disc pl-5 space-y-1 text-sm">
                           <li><strong>FIFO (First In, First Out):</strong> Delayed skills (like Mage's potion or Rocketeer's rocket) resolve uniformly <strong>at the end of the specified round (after everyone has moved)</strong>.</li>
+                        </ul>
+                      </div>
+
+                      <div>
+                        <h4 className="font-semibold text-gray-900 dark:text-white mb-2">2.4 Team Mode (Optional)</h4>
+                        <ul className="list-disc pl-5 space-y-1 text-sm">
+                          <li><strong>Setup:</strong> The host enables Team Mode in the lobby and sets 2–8 teams. All players must join a team before the game can start.</li>
+                          <li><strong>Shared Spawn:</strong> All players on the same team start at the <strong>same city</strong> (anchored to teammate #1's city). Purchasing also requires returning to that shared city.</li>
+                          <li><strong>Win Condition:</strong> The game ends when all surviving players belong to the same team. That team wins.</li>
+                          <li><strong>Friendly Fire:</strong> Attacking teammates is allowed. No protection between team members.</li>
+                          <li><strong>Rankings:</strong> Final standings are grouped by team. A team's rank equals the <strong>best individual rank</strong> among its members. All members are shown together under the team entry.</li>
                         </ul>
                       </div>
                     </div>
@@ -443,6 +499,17 @@ export function RulesModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                         <h4 className="font-semibold text-gray-900 dark:text-white mb-2">2.3 结算顺序 (Settlement Order)</h4>
                         <ul className="list-disc pl-5 space-y-1 text-sm">
                           <li><strong>按释放顺序生效 (FIFO)：</strong> 游戏中的延时类技能（如法师的药水、火箭兵的炮弹），将在<strong>设定的轮数结束时（所有人均行动完毕后）</strong>统一触发结算。</li>
+                        </ul>
+                      </div>
+
+                      <div>
+                        <h4 className="font-semibold text-gray-900 dark:text-white mb-2">2.4 团队模式（可选）</h4>
+                        <ul className="list-disc pl-5 space-y-1 text-sm">
+                          <li><strong>开启方式：</strong>房主在等待室打开团队模式开关，并设定队伍数量（2～8）。所有玩家必须选择队伍才能开局。</li>
+                          <li><strong>共享出生城池：</strong>同队成员全部从<strong>同一座城池</strong>出发（锚定为队内第一成员的城池）。购买物品时也需回到该共享城池。</li>
+                          <li><strong>胜利条件：</strong>当场上所有存活玩家均属于同一队伍时，该队伍立即获胜。</li>
+                          <li><strong>队友伤害：</strong>允许攻击队友，队友之间无任何保护机制。</li>
+                          <li><strong>排名规则：</strong>最终排名以队伍为单位展示。队伍排名 = 队内<strong>最佳个人名次</strong>。同队所有成员合并显示在该队伍条目下。</li>
                         </ul>
                       </div>
                     </div>

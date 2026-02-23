@@ -28,6 +28,52 @@ function getPurchaseCost(item: PurchaseRightType): number {
   }
 }
 
+// ── Damage preview helpers ──────────────────────────────────────────────────
+function getTargetDefense(target: Player): number {
+  if (['boxer', 'monk'].includes(target.class || '')) return 0;
+  let def = target.inventory.filter(i => i === 'shirt').length;
+  if (target.class === 'fatty' && target.inventory.includes('fat')) def += 1;
+  return def;
+}
+
+function calcKnifeDamage(attacker: Player, target: Player): number {
+  const knifeCount = attacker.inventory.filter(i => i === 'knife').length;
+  return Math.max(0, knifeCount - getTargetDefense(target) + 1);
+}
+
+function calcHorseDamage(attacker: Player, target: Player): number {
+  const horseCount = attacker.inventory.filter(i => i === 'horse').length;
+  return Math.max(0, 2 + horseCount - getTargetDefense(target) + 1);
+}
+
+function calcArrowDamage(attacker: Player, target: Player): number {
+  const bowCount = attacker.inventory.filter(i => i === 'bow').length;
+  return Math.max(0, 1 + bowCount - 1 - getTargetDefense(target) + 1);
+}
+
+function calcRocketDamage(attacker: Player): number {
+  const launcherCount = attacker.inventory.filter(i => i === 'rocket_launcher').length;
+  return 2 + launcherCount - 1;
+}
+
+function calcPunchDamage(gloveType: string): number {
+  switch (gloveType) {
+    case 'bronze_glove': return 1;
+    case 'silver_glove': return 2;
+    case 'gold_glove': return 3;
+    default: return 0;
+  }
+}
+
+function calcKickDamage(beltType: string): number {
+  switch (beltType) {
+    case 'bronze_belt': return 1;
+    case 'silver_belt': return 1;
+    case 'gold_belt': return 2;
+    default: return 0;
+  }
+}
+
 interface GameBoardProps {
   currentPlayer: Player;
   allPlayers: Player[];
@@ -214,6 +260,7 @@ export function GameBoard({ currentPlayer, allPlayers, isMyTurn, currentTurnPlay
                         className="py-2 px-3 rounded bg-red-500 hover:bg-red-600 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white text-sm font-semibold transition-colors disabled:cursor-not-allowed cursor-pointer"
                       >
                         🗡️ {t('item.knife')}
+                        <span className="text-xs opacity-90 ml-1">[-{calcKnifeDamage(currentPlayer, player)}]</span>
                       </button>
                       {currentPlayer.location.type === 'city' && (
                         <button
@@ -222,6 +269,7 @@ export function GameBoard({ currentPlayer, allPlayers, isMyTurn, currentTurnPlay
                           className="py-2 px-3 rounded bg-orange-500 hover:bg-orange-600 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white text-sm font-semibold transition-colors disabled:cursor-not-allowed cursor-pointer"
                         >
                           🐴 {t('item.horse')}
+                          <span className="text-xs opacity-90 ml-1">[-{calcHorseDamage(currentPlayer, player)}]</span>
                         </button>
                       )}
                     </div>
@@ -348,6 +396,7 @@ export function GameBoard({ currentPlayer, allPlayers, isMyTurn, currentTurnPlay
                       >
                         <Target className="w-4 h-4 inline mr-1" />
                         {player.name}
+                        <span className="text-xs opacity-90 ml-1">[-{calcArrowDamage(currentPlayer, player)}]</span>
                       </button>
                     )) : (
                       <span className="text-xs text-gray-500 col-span-2">{t('game.noPlayersHere')}</span>
@@ -371,6 +420,7 @@ export function GameBoard({ currentPlayer, allPlayers, isMyTurn, currentTurnPlay
                     >
                       <Rocket className="w-4 h-4 inline mr-1" />
                       {t('ability.toBeCentral')}
+                      <span className="text-xs opacity-90 ml-1">[-{calcRocketDamage(currentPlayer)}]</span>
                     </button>
                     {allPlayers.map((p) => (
                       <button
@@ -380,6 +430,7 @@ export function GameBoard({ currentPlayer, allPlayers, isMyTurn, currentTurnPlay
                         className="py-2 px-3 rounded bg-red-500 hover:bg-red-600 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white text-sm font-semibold truncate cursor-pointer disabled:cursor-not-allowed"
                       >
                         {p.name}
+                        <span className="text-xs opacity-90 ml-1">[-{calcRocketDamage(currentPlayer)}]</span>
                       </button>
                     ))}
                   </div>
@@ -435,6 +486,7 @@ export function GameBoard({ currentPlayer, allPlayers, isMyTurn, currentTurnPlay
                               className="py-1 px-2 rounded bg-amber-500 hover:bg-amber-600 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white text-xs font-semibold cursor-pointer disabled:cursor-not-allowed truncate"
                             >
                               👊 {player.name}
+                              <span className="opacity-90 ml-1">[-{calcPunchDamage(glove)}]</span>
                             </button>
                           )) : <span className="text-xs text-gray-500 col-span-2">{t('game.noPlayersHere')}</span>}
                         </div>
@@ -468,6 +520,7 @@ export function GameBoard({ currentPlayer, allPlayers, isMyTurn, currentTurnPlay
                               className="py-1 px-2 rounded bg-purple-500 hover:bg-purple-600 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white text-xs font-semibold cursor-pointer disabled:cursor-not-allowed truncate"
                             >
                               🦵 {player.name}
+                              <span className="opacity-90 ml-1">[-{calcKickDamage(belt)}]</span>
                             </button>
                           )) : <span className="text-xs text-gray-500 col-span-2">{t('game.noPlayersHere')}</span>}
                         </div>

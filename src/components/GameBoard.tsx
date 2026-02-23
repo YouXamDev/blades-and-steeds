@@ -17,7 +17,6 @@ function getPurchaseCost(item: PurchaseRightType): number {
   switch (item) {
     case 'bow':
     case 'rocket_launcher':
-    case 'ufo':
     case 'silver_glove':
     case 'silver_belt':
       return 2;

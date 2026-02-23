@@ -20,13 +20,13 @@ export function GameRoom() {
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
   const [isModalHidden, setIsModalHidden] = useState(false);
-  const pendingLoot = gameState?.phase === 'playing' && !pendingAlien && (gameState?.pendingLoots?.filter(p => p.killerId === getUserId()) || []).length > 0;
+  const pendingLoot = gameState?.phase === 'playing' && (gameState?.pendingLoots?.filter(p => p.killerId === getUserId()) || []).length > 0;
   const [isRulesOpen, setIsRulesOpen] = useState(false);
   const [isActionPending, setIsActionPending] = useState(false);
   
   useEffect(() => {
     setIsModalHidden(false);
-  }, [pendingAlien, pendingLoot]);
+  }, [pendingLoot]);
 
   useEffect(() => {
     if (gameState) {

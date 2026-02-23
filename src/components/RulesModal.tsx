@@ -282,8 +282,16 @@ export function RulesModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                         </ul>
                       </div>
 
+                      <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-xl border border-gray-200 dark:border-gray-600">
+                        <h4 className="font-bold text-lg mb-2 flex items-center gap-2">② Alien</h4>
+                        <ul className="list-disc pl-5 space-y-1 text-sm">
+                          <li><strong>Initial & Buy:</strong> Starts with [Knife Purchase Right]. <strong>Cannot use horses.</strong></li>
+                          <li><strong>Active Teleport (1 step, limit 1/turn):</strong> Can teleport to any location on the map each turn.</li>
+                        </ul>
+                      </div>
+
                       <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-xl border border-gray-200 dark:border-gray-600 border-l-4 border-l-red-500">
-                        <h4 className="font-bold text-lg mb-2 flex items-center gap-2">② Boxer</h4>
+                        <h4 className="font-bold text-lg mb-2 flex items-center gap-2">③ Boxer</h4>
                         <ul className="list-disc pl-5 space-y-1 text-sm">
                           <li><strong>Initial & Buy:</strong> Starts with 3 [Glove Purchase Rights] <strong>(Cost: Bronze 1 / Silver 2 / Gold 3)</strong>. <strong className="text-red-600 dark:text-red-400">No shirt, cannot use knives or horses.</strong></li>
                           <li><strong>Attack:</strong> 1 step for a melee attack with equipped gloves.</li>
@@ -292,17 +300,16 @@ export function RulesModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                       </div>
 
                       <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-xl border border-gray-200 dark:border-gray-600">
-                        <h4 className="font-bold text-lg mb-2 flex items-center gap-2">③ Bomber</h4>
+                        <h4 className="font-bold text-lg mb-2 flex items-center gap-2">④ Fatty</h4>
                         <ul className="list-disc pl-5 space-y-1 text-sm">
-                          <li><strong>Initial & Buy:</strong> No special starting rights. Normal knife/horse purchase.</li>
-                          <li><strong>Place Bomb:</strong> 1 step to place a bomb at your feet (visible to all, stackable).</li>
-                          <li><strong>Detonate:</strong> 1 step to instantly detonate ALL your placed bombs on the map.</li>
-                          <li><strong>Damage:</strong> Deals 1 <strong>True Damage</strong> per bomb.</li>
+                          <li><strong>Initial & Buy:</strong> Starts with exclusive [Fat] (Grants 1 Defense, cannot be stolen, destroyed upon death). <strong>Cannot use horses.</strong></li>
+                          <li><strong>Hug Move:</strong> Costs <strong>1 step</strong> to forcibly drag one player from your current location to an adjacent location.</li>
+                          <li><strong>Passive (Mass Suppression):</strong> At the end of your turn, all other players in the same City lose 1 HP. (Does not trigger in Central).</li>
                         </ul>
                       </div>
 
                       <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-xl border border-gray-200 dark:border-gray-600">
-                        <h4 className="font-bold text-lg mb-2 flex items-center gap-2">④ Archer</h4>
+                        <h4 className="font-bold text-lg mb-2 flex items-center gap-2">⑤ Archer</h4>
                         <ul className="list-disc pl-5 space-y-1 text-sm">
                           <li><strong>Initial & Buy:</strong> Starts with [Bow Purchase Right]. Can buy 🏹 Bow (2 steps) and 🎯 Arrows (1 step, must hold Bow first).</li>
                           <li><strong>Shoot:</strong> Costs 1 step + 1 arrow.</li>
@@ -312,21 +319,12 @@ export function RulesModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                       </div>
 
                       <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-xl border border-gray-200 dark:border-gray-600">
-                        <h4 className="font-bold text-lg mb-2 flex items-center gap-2">⑤ Fatty</h4>
+                        <h4 className="font-bold text-lg mb-2 flex items-center gap-2">⑥ Bomber</h4>
                         <ul className="list-disc pl-5 space-y-1 text-sm">
-                          <li><strong>Initial & Buy:</strong> Starts with exclusive [Fat] (Grants 1 Defense, cannot be stolen, destroyed upon death). <strong>Cannot use horses.</strong></li>
-                          <li><strong>Hug Move:</strong> Costs <strong>1 step</strong> to forcibly drag one player from your current location to an adjacent location.</li>
-                          <li><strong>Passive (Mass Suppression):</strong> At the end of your turn, all other players in the same City lose 1 HP. (Does not trigger in Central).</li>
-                        </ul>
-                      </div>
-
-                      <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-xl border border-gray-200 dark:border-gray-600">
-                        <h4 className="font-bold text-lg mb-2 flex items-center gap-2">⑥ Rocketeer</h4>
-                        <ul className="list-disc pl-5 space-y-1 text-sm">
-                          <li><strong>Initial & Buy:</strong> Starts with [Launcher Purchase Right]. Can buy 🚀 Launcher (2 steps) and 📦 Ammo (1 step, must hold Launcher first).</li>
-                          <li><strong>Fire:</strong> Costs 1 step + 1 ammo.</li>
-                          <li><strong>Range:</strong> Global AOE. Resolves at the end of the next turn.</li>
-                          <li><strong>Damage:</strong> Deals 2 + (Launchers - 1) <strong>True Damage</strong>.</li>
+                          <li><strong>Initial & Buy:</strong> No special starting rights. Normal knife/horse purchase.</li>
+                          <li><strong>Place Bomb:</strong> 1 step to place a bomb at your feet (visible to all, stackable).</li>
+                          <li><strong>Detonate:</strong> 1 step to instantly detonate ALL your placed bombs on the map.</li>
+                          <li><strong>Damage:</strong> Deals 1 <strong>True Damage</strong> per bomb.</li>
                         </ul>
                       </div>
 
@@ -340,10 +338,12 @@ export function RulesModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                       </div>
 
                       <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-xl border border-gray-200 dark:border-gray-600">
-                        <h4 className="font-bold text-lg mb-2 flex items-center gap-2">⑧ Alien</h4>
+                        <h4 className="font-bold text-lg mb-2 flex items-center gap-2">⑧ Rocketeer</h4>
                         <ul className="list-disc pl-5 space-y-1 text-sm">
-                          <li><strong>Initial & Buy:</strong> Starts with [Knife Purchase Right]. <strong>Cannot use horses.</strong></li>
-                          <li><strong>Active Teleport (1 step, limit 1/turn):</strong> Can teleport to any location on the map each turn.</li>
+                          <li><strong>Initial & Buy:</strong> Starts with [Launcher Purchase Right]. Can buy 🚀 Launcher (2 steps) and 📦 Ammo (1 step, must hold Launcher first).</li>
+                          <li><strong>Fire:</strong> Costs 1 step + 1 ammo.</li>
+                          <li><strong>Range:</strong> Global AOE. Resolves at the end of the next turn.</li>
+                          <li><strong>Damage:</strong> Deals 2 + (Launchers - 1) <strong>True Damage</strong>.</li>
                         </ul>
                       </div>
 
@@ -353,7 +353,7 @@ export function RulesModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                           <li><strong>Initial & Buy:</strong> No special starting rights. Can infinitely purchase 🧪 Potions (1 step each, does not occupy inventory slots).</li>
                           <li><strong>Skill:</strong> Delayed Area Heal. Throw to any location; resolves at the end of the next turn.</li>
                           <li><strong>Effect:</strong> Heals everyone at the location for X health (X = extra steps invested during cast).</li>
-                          <li><strong>Passive (Weapon Master):</strong> Can ignore class restrictions to use any stolen exclusive weapons, and can buy corresponding ammo.</li>
+                          <li><strong>Passive (Weapon Master):</strong> Can ignore class restrictions to use any stolen exclusive weapons, and can buy corresponding ammo. <strong>Limit: only 1 borrowed skill (Arrow Shot / Rocket / Punch / Kick) per turn.</strong></li>
                         </ul>
                       </div>
                     </div>
@@ -477,8 +477,16 @@ export function RulesModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                         </ul>
                       </div>
 
+                      <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-xl border border-gray-200 dark:border-gray-600">
+                        <h4 className="font-bold text-lg mb-2 flex items-center gap-2">② 外星人 (Alien)</h4>
+                        <ul className="list-disc pl-5 space-y-1 text-sm">
+                          <li><strong>初始与购买：</strong> 初始自带 买刀权 x1。<strong>无法使用马。</strong></li>
+                          <li><strong>主动瞬移（1步，每回合限 1 次）：</strong> 每回合可消耗 1 步眼移动到地图上任意位置。</li>
+                        </ul>
+                      </div>
+
                       <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-xl border border-gray-200 dark:border-gray-600 border-l-4 border-l-red-500">
-                        <h4 className="font-bold text-lg mb-2 flex items-center gap-2">② 拳击手 (Boxer)</h4>
+                        <h4 className="font-bold text-lg mb-2 flex items-center gap-2">③ 拳击手 (Boxer)</h4>
                         <ul className="list-disc pl-5 space-y-1 text-sm">
                           <li><strong>初始与购买：</strong> 初始自带 买三种拳套权。<strong>无衣服，无法使用刀和马。</strong> <br/> 🥉 铜拳套 (1步) / 🥈 银拳套 (2步) / 🥇 金拳套 (3步)</li>
                           <li><strong>攻击：</strong> 消耗 1步，选择佩戴的一种拳套进行近战攻击。</li>
@@ -487,17 +495,16 @@ export function RulesModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                       </div>
 
                       <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-xl border border-gray-200 dark:border-gray-600">
-                        <h4 className="font-bold text-lg mb-2 flex items-center gap-2">③ 爆破手 (Bomber)</h4>
+                        <h4 className="font-bold text-lg mb-2 flex items-center gap-2">④ 胖子 (Fatty)</h4>
                         <ul className="list-disc pl-5 space-y-1 text-sm">
-                          <li><strong>初始与购买：</strong> 初始无特殊。正常购买刀马。</li>
-                          <li><strong>埋弹：</strong> 消耗 1步。在脚下放置炸弹（全场可见，可堆叠）。</li>
-                          <li><strong>引爆：</strong> 消耗 1步。瞬间引爆自己场上所有的炸弹。</li>
-                          <li><strong>伤害：</strong> 每颗炸弹造成 1 点<strong>真实伤害</strong>。</li>
+                          <li><strong>初始与购买：</strong> 开局自带【脂肪衣】（提供1点防御，不可被抢夺，死后消失）。<strong>无法使用马。</strong></li>
+                          <li><strong>抱人移动：</strong> 移动时消耗<strong>1步</strong>，可以强制拖拽当前位置的任意一人，与你一起移动到相邻位置。</li>
+                          <li><strong>被动（体量压制）：</strong> 每回合行动结束时，与其位于同一座城池的其他玩家扣 1 滴血（如果胖子在中央则不触发）。</li>
                         </ul>
                       </div>
 
                       <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-xl border border-gray-200 dark:border-gray-600">
-                        <h4 className="font-bold text-lg mb-2 flex items-center gap-2">④ 弓箭手 (Archer)</h4>
+                        <h4 className="font-bold text-lg mb-2 flex items-center gap-2">⑤ 弓箭手 (Archer)</h4>
                         <ul className="list-disc pl-5 space-y-1 text-sm">
                           <li><strong>初始与购买：</strong> 初始自带 买弓权 x1。可购买 🏹 弓 (2步) 和 🎯 箭矢 (1步，必须先拥有弓才能购买)。</li>
                           <li><strong>射击：</strong> 消耗 1步 + 1支箭（需持有弓）。</li>
@@ -507,21 +514,12 @@ export function RulesModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                       </div>
 
                       <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-xl border border-gray-200 dark:border-gray-600">
-                        <h4 className="font-bold text-lg mb-2 flex items-center gap-2">⑤ 胖子 (Fatty)</h4>
+                        <h4 className="font-bold text-lg mb-2 flex items-center gap-2">⑥ 爆破手 (Bomber)</h4>
                         <ul className="list-disc pl-5 space-y-1 text-sm">
-                          <li><strong>初始与购买：</strong> 开局自带【脂肪衣】（提供1点防御，不可被抢夺，死后消失）。<strong>无法使用马。</strong></li>
-                          <li><strong>抱人移动：</strong> 移动时消耗<strong>1步</strong>，可以强制拖拽当前位置的任意一人，与你一起移动到相邻位置。</li>
-                          <li><strong>被动（体量压制）：</strong> 每回合行动结束时，与其位于同一座城池的其他玩家扣 1 滴血（如果胖子在中央则不触发）。</li>
-                        </ul>
-                      </div>
-
-                      <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-xl border border-gray-200 dark:border-gray-600">
-                        <h4 className="font-bold text-lg mb-2 flex items-center gap-2">⑥ 火箭兵 (Rocketeer)</h4>
-                        <ul className="list-disc pl-5 space-y-1 text-sm">
-                          <li><strong>初始与购买：</strong> 初始自带 买火箭筒权 x1。可购买 🚀 火箭筒 (2步) 和 📦 火箭弹 (1步，必须先拥有火箭筒才能购买)。</li>
-                          <li><strong>开火：</strong> 消耗 1步 + 1发火箭弹（需持有火箭筒）。</li>
-                          <li><strong>范围：</strong> 全图任意指定区域（延时AOE，下回合结束时生效）。</li>
-                          <li><strong>伤害：</strong> 造成 2 + (火箭筒数量 - 1) 点<strong>真实伤害</strong>。</li>
+                          <li><strong>初始与购买：</strong> 初始无特殊。正常购买刀马。</li>
+                          <li><strong>埋弹：</strong> 消耗 1步。在脚下放置炸弹（全场可见，可堆叠）。</li>
+                          <li><strong>引爆：</strong> 消耗 1步。瞬间引爆自己场上所有的炸弹。</li>
+                          <li><strong>伤害：</strong> 每颗炸弹造成 1 点<strong>真实伤害</strong>。</li>
                         </ul>
                       </div>
 
@@ -535,10 +533,12 @@ export function RulesModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                       </div>
 
                       <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-xl border border-gray-200 dark:border-gray-600">
-                        <h4 className="font-bold text-lg mb-2 flex items-center gap-2">⑧ 外星人 (Alien)</h4>
+                        <h4 className="font-bold text-lg mb-2 flex items-center gap-2">⑧ 火箭兵 (Rocketeer)</h4>
                         <ul className="list-disc pl-5 space-y-1 text-sm">
-                          <li><strong>初始与购买：</strong> 初始自带 买刀权 x1。<strong>无法使用马。</strong></li>
-                          <li><strong>主动瞬移（1步，每回合限 1 次）：</strong> 每回合可消耗 1 步眼移动到地图上任意位置。</li>
+                          <li><strong>初始与购买：</strong> 初始自带 买火箭筒权 x1。可购买 🚀 火箭筒 (2步) 和 📦 火箭弹 (1步，必须先拥有火箭筒才能购买)。</li>
+                          <li><strong>开火：</strong> 消耗 1步 + 1发火箭弹（需持有火箭筒）。</li>
+                          <li><strong>范围：</strong> 全图任意指定区域（延时AOE，下回合结束时生效）。</li>
+                          <li><strong>伤害：</strong> 造成 2 + (火箭筒数量 - 1) 点<strong>真实伤害</strong>。</li>
                         </ul>
                       </div>
 
@@ -548,7 +548,7 @@ export function RulesModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                           <li><strong>初始与购买：</strong> 无特殊初始。可无限购买 🧪 药水 (消耗1步，且不占物品栏)。</li>
                           <li><strong>技能：</strong> 延时回血。指定全图任意位置（中央或某人城池）投掷，下回合所有人行动结束后生效。</li>
                           <li><strong>效果：</strong> 该位置上的所有人回复 X 点血量（X由施法时投入的额外步数决定）。</li>
-                          <li><strong>被动（全职高手）：</strong> 法师只要拥有其他职业的专属道具，就可以无视职业限制使用其技能（如射箭、传送、拳套等），并在拥有对应武器时可购买专属弹药。</li>
+                          <li><strong>被动（全职高手）：</strong> 法师只要拥有其他职业的专属道具，就可以无视职业限制使用其技能（如射箭、传送、拳套等），并在拥有对应武器时可购买专属弹药。<strong>每回合最多只能使用一次其他职业的专属技能（射箭、发射火箭、拳击、踢击四类中任选一次）。</strong></li>
                         </ul>
                       </div>
                     </div>

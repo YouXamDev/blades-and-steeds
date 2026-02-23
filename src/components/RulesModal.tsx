@@ -342,8 +342,8 @@ export function RulesModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                       <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-xl border border-gray-200 dark:border-gray-600">
                         <h4 className="font-bold text-lg mb-2 flex items-center gap-2">⑧ Alien</h4>
                         <ul className="list-disc pl-5 space-y-1 text-sm">
-                          <li><strong>Initial & Buy:</strong> Starts with [UFO Purchase Right]. <strong>Cannot use horses.</strong></li>
-                          <li><strong>Active Teleport:</strong> While owning a UFO, costs 1 step to teleport anywhere globally. <strong>(Limit 1 per turn, regardless of UFO count)</strong>.</li>
+                          <li><strong>Initial & Buy:</strong> Starts with [Knife Purchase Right]. <strong>Cannot use horses.</strong></li>
+                          <li><strong>No special active skill.</strong></li>
                         </ul>
                       </div>
 
@@ -537,8 +537,8 @@ export function RulesModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                       <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-xl border border-gray-200 dark:border-gray-600">
                         <h4 className="font-bold text-lg mb-2 flex items-center gap-2">⑧ 外星人 (Alien)</h4>
                         <ul className="list-disc pl-5 space-y-1 text-sm">
-                          <li><strong>初始与购买：</strong> 初始自带 买UFO权 x1。<strong>无法使用马。</strong> 可购买 🛸 UFO (2步)。</li>
-                          <li><strong>主动瞬移：</strong> 只要拥有UFO，消耗 1步即可移动到地图上任意位置。<strong>每回合限使用1次（即使拥有多个UFO也只算1次）</strong>。</li>
+                          <li><strong>初始与购买：</strong> 初始自带 买刀权 x1。<strong>无法使用马。</strong></li>
+                          <li><strong>无主动技能。</strong></li>
                         </ul>
                       </div>
 

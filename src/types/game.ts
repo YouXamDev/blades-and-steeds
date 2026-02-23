@@ -31,7 +31,6 @@ export const ItemType = {
   BRONZE_BELT: 'bronze_belt',
   SILVER_BELT: 'silver_belt',
   GOLD_BELT: 'gold_belt',
-  UFO: 'ufo',
   FAT: 'fat',
 } as const;
 export type ItemType = typeof ItemType[keyof typeof ItemType];
@@ -48,7 +47,6 @@ export const PurchaseRightType = {
   BRONZE_BELT: 'bronze_belt',
   SILVER_BELT: 'silver_belt',
   GOLD_BELT: 'gold_belt',
-  UFO: 'ufo',
   // Consumables (can be purchased multiple times)
   POTION: 'potion',
   ARROW: 'arrow',
@@ -77,11 +75,9 @@ export const ActionType = {
   DETONATE_BOMB: 'detonate_bomb',
   PUNCH: 'punch',
   KICK: 'kick',
-  TELEPORT: 'teleport',
   HUG: 'hug',
   USE_POTION: 'use_potion',
   CLAIM_LOOT: 'claim_loot',
-  ALIEN_PASSIVE_TELEPORT: 'alien_passive_teleport',
   FATTY_PASSIVE_DAMAGE: 'fatty_passive_damage',
 } as const;
 export type ActionType = typeof ActionType[keyof typeof ActionType];
@@ -123,6 +119,8 @@ export interface Player {
   isAlive: boolean;
   isReady: boolean; // For class selection phase
   isConnected: boolean; // Whether player is currently connected via WebSocket
+  teamId?: number; // Team number (1-based), undefined = no team
+  initialCity?: string; // The city this player (or team) starts from – used for purchasing and kick-back
   deathTime?: number; // Timestamp of death
   rank?: number; // Final rank (1 = winner, higher = died earlier)
   deathOrder?: number; // Death order (1 = first to die, 2 = second, etc.)
@@ -165,7 +163,6 @@ export type ActionResult =
   | { type: 'potion_heal'; target: string; targetName: string; location: { type: LocationType; cityId?: string }; healed: number }
   | { type: 'place_bomb'; location: { type: LocationType; cityId?: string } }
   | { type: 'detonate_bomb'; victims: Array<{ name: string; damage: number; killed: boolean }> }
-  | { type: 'teleport'; location: { type: LocationType; cityId?: string } }
   | { type: 'hug'; target: string; targetName: string; location: { type: LocationType; cityId?: string } }
   | { type: 'fatty_passive_damage'; target: string; targetName: string; damage: number; killed: boolean };
 
@@ -217,6 +214,8 @@ export interface GameSettings {
   initialHealth: number;
   classOptionsCount: number;
   maxPlayersPerClass: number;
+  teamMode: boolean;      // Whether team mode is enabled
+  teamCount: number;      // Number of teams (2-8)
 }
 
 // Game state
@@ -235,7 +234,6 @@ export interface GameState {
   actionLogs: ActionLog[];
   stepPool: number;
   pendingLoots: PendingLoot[];
-  pendingAlienTeleports: string[];
   createdAt: number;
   updatedAt?: number;
 }
@@ -253,6 +251,7 @@ export const MessageType = {
   RETURN_TO_ROOM: 'return_to_room',
   UPDATE_SETTINGS: 'update_settings',
   REMOVE_PLAYER: 'remove_player',
+  JOIN_TEAM: 'join_team',
   // Server -> Client
   ROOM_STATE: 'room_state',
   PLAYER_JOINED: 'player_joined',
@@ -324,6 +323,12 @@ export interface RemovePlayerMessage {
   targetPlayerId: string;
 }
 
+export interface JoinTeamMessage {
+  type: 'join_team';
+  playerId: string;
+  teamId: number | null; // null = leave team
+}
+
 // Server messages
 export interface RoomStateMessage {
   type: 'room_state';
@@ -372,7 +377,8 @@ export type ClientMessage =
   | ForceEndGameMessage
   | ReturnToRoomMessage
   | UpdateSettingsMessage
-  | RemovePlayerMessage;
+  | RemovePlayerMessage
+  | JoinTeamMessage;
 
 export type ServerMessage =
   | RoomStateMessage

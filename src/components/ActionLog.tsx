@@ -26,7 +26,6 @@ export function ActionLog({ logs, currentPlayerId, players }: ActionLogProps) {
       case 'detonate_bomb': return '💥';
       case 'punch': return '👊';
       case 'kick': return '🦵';
-      case 'teleport': return '🛸';
       case 'hug': return '🤗';
       case 'use_potion': return '🧪';
       default: return '⚡';
@@ -91,9 +90,6 @@ export function ActionLog({ logs, currentPlayerId, players }: ActionLogProps) {
             const victimNames = result.victims.map(v => `${v.name} (-${v.damage}HP${v.killed ? ' ☠️' : ''})`).join(', ');
             return t('log.detonateBombHit', { victims: victimNames });
           }
-        
-        case 'teleport':
-          return t('log.teleport', { city: getCityName(result.location.cityId) });
         
         case 'hug':
           return t('log.hug', { target: result.targetName, city: getCityName(result.location.cityId) });

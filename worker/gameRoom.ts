@@ -42,7 +42,6 @@ function getPurchaseCost(item: PurchaseRightType): number {
   switch (item) {
     case 'bow':
     case 'rocket_launcher':
-    case 'ufo':
     case 'silver_glove':
     case 'silver_belt':
       return 2;
@@ -97,7 +96,7 @@ function getInitialPurchaseRights(playerClass: PlayerClass): PurchaseRightType[]
     case 'monk':
       return ['bronze_belt', 'silver_belt', 'gold_belt'];
     case 'alien':
-      return ['knife', 'ufo'];
+      return ['knife'];
     case 'fatty':
       return ['knife'];
     case 'vampire':
@@ -139,12 +138,13 @@ export class GameRoom extends DurableObject<Env> {
           initialHealth: data.settings?.initialHealth ?? 15,
           classOptionsCount: data.settings?.classOptionsCount ?? 3,
           maxPlayersPerClass: data.settings?.maxPlayersPerClass ?? 2,
+          teamMode: data.settings?.teamMode ?? false,
+          teamCount: data.settings?.teamCount ?? 2,
         },
         players: new Map(data.players.map((p: any) => [p.id, p])),
         turnOrder: data.turnOrder || [],
         actionLogs: data.actionLogs || [],
         pendingLoots: data.pendingLoots || [],
-        pendingAlienTeleports: data.pendingAlienTeleports || [],
       };
     }
     this.stateLoaded = true;
@@ -292,6 +292,7 @@ export class GameRoom extends DurableObject<Env> {
         break;
       case 'update_settings': await this.handleUpdateSettings(ws, message); break;
       case 'remove_player': await this.handleRemovePlayer(ws, message); break;
+      case 'join_team': await this.handleJoinTeam(ws, message); break;
       default:
         this.sendError(ws, 'Unknown message type');
     }
@@ -305,6 +306,16 @@ export class GameRoom extends DurableObject<Env> {
     if (this.gameState.settings.initialHealth < 1) this.gameState.settings.initialHealth = 1;
     if (this.gameState.settings.classOptionsCount < 1) this.gameState.settings.classOptionsCount = 1;
     if (this.gameState.settings.maxPlayersPerClass < 1) this.gameState.settings.maxPlayersPerClass = 1;
+    if (this.gameState.settings.teamCount < 2) this.gameState.settings.teamCount = 2;
+    if (this.gameState.settings.teamCount > 8) this.gameState.settings.teamCount = 8;
+    // If team mode is turned off or team count shrinks, clear out-of-range team assignments
+    if (!this.gameState.settings.teamMode) {
+      for (const p of this.gameState.players.values()) p.teamId = undefined;
+    } else {
+      for (const p of this.gameState.players.values()) {
+        if (p.teamId != null && p.teamId > this.gameState.settings.teamCount) p.teamId = undefined;
+      }
+    }
 
     const initHealth = this.gameState.settings.initialHealth;
     for (const player of this.gameState.players.values()) {
@@ -343,6 +354,28 @@ export class GameRoom extends DurableObject<Env> {
     await this.saveGameState();
     await this.updateRoomRegistry();
 
+    this.broadcast({ type: 'room_state', state: this.serializeGameState() });
+  }
+
+  private async handleJoinTeam(ws: WebSocket, message: { playerId: string; teamId: number | null }): Promise<void> {
+    if (!this.gameState || this.gameState.phase !== 'waiting') {
+      this.sendError(ws, 'Can only change teams in waiting phase');
+      return;
+    }
+    const player = this.gameState.players.get(message.playerId);
+    if (!player) {
+      this.sendError(ws, 'Player not found');
+      return;
+    }
+    if (message.teamId !== null) {
+      const { teamCount } = this.gameState.settings;
+      if (message.teamId < 1 || message.teamId > teamCount) {
+        this.sendError(ws, `Team ID must be between 1 and ${teamCount}`);
+        return;
+      }
+    }
+    player.teamId = message.teamId ?? undefined;
+    await this.saveGameState();
     this.broadcast({ type: 'room_state', state: this.serializeGameState() });
   }
 
@@ -425,7 +458,6 @@ export class GameRoom extends DurableObject<Env> {
     this.gameState.delayedEffects = [];
     this.gameState.actionLogs = [];
     this.gameState.pendingLoots = [];
-    this.gameState.pendingAlienTeleports = [];
     
     const initHealth = this.gameState.settings.initialHealth ?? 15;
     for (const player of this.gameState.players.values()) {
@@ -439,6 +471,7 @@ export class GameRoom extends DurableObject<Env> {
       player.stepsRemaining = 0;
       player.isAlive = true;
       player.isReady = false;
+      player.teamId = undefined;
       delete player.deathTime;
       delete player.rank;
       delete player.deathOrder;
@@ -468,14 +501,15 @@ export class GameRoom extends DurableObject<Env> {
         delayedEffects: [],
         actionLogs: [],
         pendingLoots: [], 
-        pendingAlienTeleports: [], 
         settings: {
           minPlayers: 2,
           maxPlayers: 9,
           isPublic: this.roomIsPublic,
           initialHealth: 15,
           classOptionsCount: 3,
-          maxPlayersPerClass: 2
+          maxPlayersPerClass: 2,
+          teamMode: false,
+          teamCount: 2,
         },
         hostId: message.playerId,
       } as any;
@@ -540,6 +574,7 @@ export class GameRoom extends DurableObject<Env> {
       isAlive: true,
       isReady: false,
       isConnected: true,
+      teamId: undefined,
     };
 
     state.players.set(message.playerId, player);
@@ -660,6 +695,21 @@ export class GameRoom extends DurableObject<Env> {
       return;
     }
 
+    // Team mode validation
+    if (this.gameState.settings.teamMode) {
+      for (const player of this.gameState.players.values()) {
+        if (player.teamId == null) {
+          this.sendError(ws, '所有玩家必须选择队伍才能在团队模式下开始游戏');
+          return;
+        }
+      }
+      const activeTeams = new Set(Array.from(this.gameState.players.values()).map(p => p.teamId));
+      if (activeTeams.size < 2) {
+        this.sendError(ws, '团队模式下至少需要2个队伍有成员');
+        return;
+      }
+    }
+
     // Start class selection phase with turn-based selection
     this.gameState.phase = 'class_selection';
     
@@ -743,7 +793,6 @@ export class GameRoom extends DurableObject<Env> {
         case 'launch_rocket': actionResult = await this.handleLaunchRocketAction(player, action); break;
         case 'place_bomb': actionResult = await this.handlePlaceBombAction(player, action); break;
         case 'detonate_bomb': actionResult = await this.handleDetonateBombAction(player, action); break;
-        case 'teleport': actionResult = await this.handleTeleportAction(player, action); break;
         case 'hug': actionResult = await this.handleHugAction(player, action); break;
         case 'claim_loot': actionResult = await this.handleClaimLootAction(player, action); break;
         default:
@@ -849,8 +898,9 @@ export class GameRoom extends DurableObject<Env> {
   }
 
   private async handlePurchaseAction(player: Player, action: any): Promise<ActionResult> {
-    // Verify in own city
-    if (player.location.type !== 'city' || player.location.cityId !== player.id) {
+    // Verify in own (or team's) city
+    const homeCityId = player.initialCity ?? player.id;
+    if (player.location.type !== 'city' || player.location.cityId !== homeCityId) {
       throw new Error('Can only purchase in your own city');
     }
 
@@ -887,7 +937,7 @@ export class GameRoom extends DurableObject<Env> {
     
     // Equipment purchases consume the purchase right (one-time only)
     const equipment = [
-      'bow', 'rocket_launcher', 'ufo', 'knife', 'horse',
+      'bow', 'rocket_launcher', 'knife', 'horse',
       'bronze_glove', 'silver_glove', 'gold_glove',
       'bronze_belt', 'silver_belt', 'gold_belt'
     ];
@@ -1137,6 +1187,17 @@ export class GameRoom extends DurableObject<Env> {
       throw new Error('Only archers (or mages) can shoot arrows');
     }
 
+    // 法师每回合只能借用一次其他职业技能
+    if (player.class === 'mage') {
+      const borrowedSkillTypes = ['shoot_arrow', 'launch_rocket', 'punch', 'kick'];
+      const hasUsedBorrowedSkill = this.gameState!.actionLogs.some(
+        log => log.turn === this.gameState!.currentTurn && log.playerId === player.id && borrowedSkillTypes.includes(log.type as string)
+      );
+      if (hasUsedBorrowedSkill) {
+        throw new Error('Mage can only use one borrowed skill per turn');
+      }
+    }
+
     if (!action.target) {
       throw new Error('Target required');
     }
@@ -1203,6 +1264,17 @@ export class GameRoom extends DurableObject<Env> {
   private async handleLaunchRocketAction(player: Player, action: any): Promise<ActionResult> {
     if (player.class !== 'rocketeer' && player.class !== 'mage') {
       throw new Error('Only rocketeers (or mages) can launch rockets');
+    }
+
+    // 法师每回合只能借用一次其他职业技能
+    if (player.class === 'mage') {
+      const borrowedSkillTypes = ['shoot_arrow', 'launch_rocket', 'punch', 'kick'];
+      const hasUsedBorrowedSkill = this.gameState!.actionLogs.some(
+        log => log.turn === this.gameState!.currentTurn && log.playerId === player.id && borrowedSkillTypes.includes(log.type as string)
+      );
+      if (hasUsedBorrowedSkill) {
+        throw new Error('Mage can only use one borrowed skill per turn');
+      }
     }
 
     if (!action.targetLocation) {
@@ -1325,6 +1397,17 @@ export class GameRoom extends DurableObject<Env> {
       throw new Error('Only boxers (or mages) can punch');
     }
 
+    // 法师每回合只能借用一次其他职业技能
+    if (player.class === 'mage') {
+      const borrowedSkillTypes = ['shoot_arrow', 'launch_rocket', 'punch', 'kick'];
+      const hasUsedBorrowedSkill = this.gameState!.actionLogs.some(
+        log => log.turn === this.gameState!.currentTurn && log.playerId === player.id && borrowedSkillTypes.includes(log.type as string)
+      );
+      if (hasUsedBorrowedSkill) {
+        throw new Error('Mage can only use one borrowed skill per turn');
+      }
+    }
+
     if (!action.target) {
       throw new Error('Target required');
     }
@@ -1381,6 +1464,17 @@ export class GameRoom extends DurableObject<Env> {
       throw new Error('Only monks (or mages) can kick');
     }
 
+    // 法师每回合只能借用一次其他职业技能
+    if (player.class === 'mage') {
+      const borrowedSkillTypes = ['shoot_arrow', 'launch_rocket', 'punch', 'kick'];
+      const hasUsedBorrowedSkill = this.gameState!.actionLogs.some(
+        log => log.turn === this.gameState!.currentTurn && log.playerId === player.id && borrowedSkillTypes.includes(log.type as string)
+      );
+      if (hasUsedBorrowedSkill) {
+        throw new Error('Mage can only use one borrowed skill per turn');
+      }
+    }
+
     if (!action.target) {
       throw new Error('Target required');
     }
@@ -1428,9 +1522,10 @@ export class GameRoom extends DurableObject<Env> {
 
     target.health = Math.max(0, target.health - damage);
 
-    // Force move (修改：中央->回家，城池->中央)
+    // Force move: central → home city, city → central
+    const homeCityId = target.initialCity ?? target.id;
     const newLocation = target.location.type === 'central'
-      ? { type: 'city' as const, cityId: target.id } // Kick back to their own city
+      ? { type: 'city' as const, cityId: homeCityId }
       : { type: 'central' as const };
     
     target.location = newLocation;
@@ -1447,39 +1542,6 @@ export class GameRoom extends DurableObject<Env> {
       targetName: target.name,
       damage,
       killed,
-    };
-  }
-
-  // Alien: Teleport
-  private async handleTeleportAction(player: Player, action: any): Promise<ActionResult> {
-    // 允许法师使用
-    if (player.class !== 'alien' && player.class !== 'mage') {
-      throw new Error('Only aliens (or mages) can teleport');
-    }
-
-    if (!action.targetLocation) {
-      throw new Error('Target location required');
-    }
-
-    // Check has UFO
-    const ufoCount = player.inventory.filter(i => i === 'ufo').length;
-    if (ufoCount === 0) {
-      throw new Error('You do not have a UFO');
-    }
-
-    // 增加每回合限一次的判断
-    const hasTeleportedThisTurn = this.gameState!.actionLogs.some(
-      log => log.turn === this.gameState!.currentTurn && log.playerId === player.id && log.type === 'teleport'
-    );
-    if (hasTeleportedThisTurn) {
-      throw new Error('Can only teleport once per turn');
-    }
-
-    player.location = action.targetLocation;
-
-    return {
-      type: 'teleport',
-      location: action.targetLocation,
     };
   }
 
@@ -1557,17 +1619,38 @@ export class GameRoom extends DurableObject<Env> {
       }
     }
 
-    if (aliveCount <= 1) {
-      this.gameState!.phase = 'ended';
-      
-      if (aliveCount === 1) {
-        const winner = Array.from(this.gameState!.players.values()).find(p => p.isAlive);
-        if (winner) winner.rank = 1;
-      } else if (aliveCount === 0) {
-        if (killer) {
-          killer.rank = 1;
-          if (victim.id !== killer.id) {
-             victim.rank = 2;
+    if (this.gameState!.settings.teamMode) {
+      // Team mode: game ends when only one team has alive players
+      const aliveTeams = new Set(
+        Array.from(this.gameState!.players.values())
+          .filter(p => p.isAlive)
+          .map(p => p.teamId)
+          .filter(t => t != null)
+      );
+      if (aliveTeams.size <= 1) {
+        this.gameState!.phase = 'ended';
+        if (aliveTeams.size === 1) {
+          const winTeam = [...aliveTeams][0];
+          for (const p of this.gameState!.players.values()) {
+            if (p.teamId === winTeam && p.isAlive) p.rank = 1;
+          }
+        } else if (aliveTeams.size === 0) {
+          if (killer) killer.rank = 1;
+        }
+      }
+    } else {
+      if (aliveCount <= 1) {
+        this.gameState!.phase = 'ended';
+        
+        if (aliveCount === 1) {
+          const winner = Array.from(this.gameState!.players.values()).find(p => p.isAlive);
+          if (winner) winner.rank = 1;
+        } else if (aliveCount === 0) {
+          if (killer) {
+            killer.rank = 1;
+            if (victim.id !== killer.id) {
+               victim.rank = 2;
+            }
           }
         }
       }
@@ -1585,7 +1668,9 @@ export class GameRoom extends DurableObject<Env> {
           p.id !== currentPlayer.id &&
           p.isAlive &&
           p.location.type === 'city' &&
-          p.location.cityId === currentPlayer.location.cityId
+          p.location.cityId === currentPlayer.location.cityId &&
+          // 团队模式下，胖子不伤害同队队友
+          !(this.gameState!.settings.teamMode && p.teamId != null && p.teamId === currentPlayer.teamId)
         );
 
         const newLogs: ActionLog[] = [];
@@ -1791,6 +1876,33 @@ export class GameRoom extends DurableObject<Env> {
     
     const alivePlayerIds = this.gameState.turnOrder.filter(id => this.gameState!.players.get(id)?.isAlive);
     this.gameState.currentPlayerId = alivePlayerIds[0];
+
+    // Set initialCity and (in team mode) co-locate teammates
+    if (this.gameState.settings.teamMode) {
+      const teamAnchor = new Map<number, string>(); // teamId -> anchorCityId
+      for (const id of alivePlayerIds) {
+        const player = this.gameState.players.get(id)!;
+        if (player.teamId != null && !teamAnchor.has(player.teamId)) {
+          teamAnchor.set(player.teamId, id); // first player in turn order → anchor
+        }
+      }
+      for (const id of alivePlayerIds) {
+        const player = this.gameState.players.get(id)!;
+        if (player.teamId != null) {
+          const anchor = teamAnchor.get(player.teamId)!;
+          player.location = { type: 'city', cityId: anchor };
+          player.initialCity = anchor;
+        } else {
+          player.initialCity = player.id;
+        }
+      }
+    } else {
+      // FFA: each player's home city is their own
+      for (const id of alivePlayerIds) {
+        const player = this.gameState.players.get(id)!;
+        player.initialCity = player.id;
+      }
+    }
 
     const alivePlayers = alivePlayerIds.map(id => this.gameState!.players.get(id)!);
     this.distributeSteps(alivePlayers);

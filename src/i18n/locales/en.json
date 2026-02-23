@@ -96,8 +96,6 @@
     "purchaseRight": "Purchase Right (Blue Border)",
     "allPlayersStatus": "All Players Status",
     "central": "Central",
-    "alienPassiveTitle": "🛸 Alien Passive",
-    "alienPassiveDesc": "All players have moved. With the power of your UFOs, you can teleport for free before delayed effects resolve! Choose target:",
     "stayHere": "Stay Here",
     "killRewardTitle": "Kill Reward 🎁",
     "killRewardPrefix": "You killed",
@@ -146,7 +144,6 @@
     "bronze_belt": "Bronze Belt",
     "silver_belt": "Silver Belt",
     "gold_belt": "Gold Belt",
-    "ufo": "UFO",
     "fat": "Fat"
   },
   "action": {
@@ -163,7 +160,6 @@
     "detonate_bomb": "Detonate Bomb",
     "punch": "Punch",
     "kick": "Kick",
-    "teleport": "Teleport",
     "hug": "Hug Move"
   },
   "log": {
@@ -186,8 +182,6 @@
     "usedPotionToCentral": "Used potion to move to central",
     "usedPotionToCity": "Used potion to move to {{city}}'s city",
     "potionHealed": "Potion healed {{target}} at {{location}} for {{healed}} HP",
-    "teleportedToCentral": "Teleported to central",
-    "teleportedToCity": "Teleported to {{city}}'s city",
     "huggedToCentral": "Hugged {{target}} and moved to central",
     "huggedToCity": "Hugged {{target}} and moved to {{city}}'s city",
     "placedBomb": "Placed bomb at {{location}}",
@@ -207,7 +201,6 @@
     "placeBomb": "Placed a bomb at {{city}}",
     "detonateBombEmpty": "Detonated bombs, but hit no one",
     "detonateBombHit": "Detonated bombs, hitting: {{victims}}",
-    "teleport": "Teleported to {{city}}",
     "hug": "Hugged {{target}} and moved to {{city}}"
   },
   "ability": {
@@ -223,7 +216,6 @@
     "needBomb": "Need Bomb",
     "needGlove": "Need Glove",
     "needBelt": "Need Belt",
-    "needUFO": "Need UFO",
     "vampirePassive": "Passive: Heal 1HP on knife attack",
     "noBombsPlaced": "No bombs placed",
     "hugCost": "Costs 1 steps"
@@ -231,6 +223,15 @@
   "location": {
     "central": "Central",
     "city": "City"
+  },
+  "team": {
+    "mode": "Team System",
+    "teamModeOn": "Team Mode",
+    "teamModeOff": "Free For All",
+    "teamCount": "Team Count",
+    "teamLabel": "Team {{n}}",
+    "selectTeam": "Select Team",
+    "noMembers": "No members"
   },
   "settings": {
     "title": "Settings",

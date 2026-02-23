@@ -10,6 +10,7 @@ import { GameBoard } from '../components/GameBoard';
 import { StarMap } from '../components/StarMap';
 import { ActionLog } from '../components/ActionLog';
 import type { GameState, Player, PlayerClass, GameAction, ItemType, GameSettings } from '../types/game';
+import { TEAM_COLORS } from '../utils/teamColors';
 
 export function GameRoom() {
   const { roomId } = useParams<{ roomId: string }>();
@@ -19,7 +20,6 @@ export function GameRoom() {
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
   const [isModalHidden, setIsModalHidden] = useState(false);
-  const pendingAlien = gameState?.phase === 'playing' && gameState.pendingAlienTeleports?.includes(getUserId());
   const pendingLoot = gameState?.phase === 'playing' && !pendingAlien && (gameState?.pendingLoots?.filter(p => p.killerId === getUserId()) || []).length > 0;
   const [isRulesOpen, setIsRulesOpen] = useState(false);
   const [isActionPending, setIsActionPending] = useState(false);
@@ -157,6 +157,14 @@ export function GameRoom() {
     });
   };
 
+  const handleJoinTeam = (teamId: number | null) => {
+    send({
+      type: 'join_team',
+      playerId: getUserId(),
+      teamId,
+    } as any);
+  };
+
   const handleAction = (action: Partial<GameAction>) => {
     setIsActionPending(true);
     send({
@@ -199,56 +207,13 @@ export function GameRoom() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 relative">
       
-      {(pendingAlien || pendingLoot) && isModalHidden && (
+      {pendingLoot && isModalHidden && (
         <button
           onClick={() => setIsModalHidden(false)}
           className="fixed bottom-8 right-8 z-[100] px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full shadow-2xl font-bold flex items-center gap-2 animate-bounce cursor-pointer"
         >
           {t('game.backToPanel')}
         </button>
-      )}
-
-      {pendingAlien && !isModalHidden && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4 backdrop-blur-md">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6 max-w-md w-full animate-in fade-in zoom-in border-2 border-cyan-500 relative">
-            <button 
-              onClick={() => setIsModalHidden(true)}
-              className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 flex items-center gap-1 text-sm font-semibold cursor-pointer"
-            >
-              <Eye className="w-4 h-4" /> {t('game.viewBoard')}
-            </button>
-
-            <h2 className="text-2xl font-bold text-cyan-600 dark:text-cyan-400 mb-2 mt-4">{t('game.alienPassiveTitle')}</h2>
-            <p className="text-gray-600 dark:text-gray-400 mb-6 font-medium">
-              {t('game.alienPassiveDesc')}
-            </p>
-            
-            <div className="grid grid-cols-2 gap-3 mb-6">
-              <button
-                onClick={() => handleAction({ type: 'alien_passive_teleport', targetLocation: { type: 'central' } })}
-                className="py-2 px-3 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-semibold transition-colors shadow-md cursor-pointer"
-              >
-                {t('location.central')}
-              </button>
-              {Array.from(gameState.players.values()).filter(p => p.isAlive).map(p => (
-                <button
-                  key={p.id}
-                  onClick={() => handleAction({ type: 'alien_passive_teleport', targetLocation: { type: 'city', cityId: p.id } })}
-                  className="py-2 px-3 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-semibold transition-colors shadow-md truncate cursor-pointer"
-                >
-                  {t('log.cityOf', { name: p.name })}
-                </button>
-              ))}
-            </div>
-
-            <button
-              onClick={() => handleAction({ type: 'alien_passive_teleport', targetLocation: currentPlayer?.location })}
-              className="w-full py-2 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors cursor-pointer"
-            >
-              {t('game.stayHere')}
-            </button>
-          </div>
-        </div>
       )}
 
       {pendingLoot && !isModalHidden && (
@@ -352,6 +317,7 @@ export function GameRoom() {
                 highlightPlayerId={getUserId()}
                 showStatus={false}
                 onRemovePlayer={isHost ? handleRemovePlayer : undefined}
+                teamMode={gameState.settings.teamMode}
               />
 
               <div className="mt-8 mb-6 bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6 border border-gray-200 dark:border-gray-600">
@@ -416,8 +382,97 @@ export function GameRoom() {
                       </div>
                     )}
                   </div>
+                  {/* Team Mode Toggle */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                      {t('team.mode')}
+                    </label>
+                    {isHost ? (
+                      <button
+                        onClick={() => handleUpdateSettings({ teamMode: !gameState.settings.teamMode })}
+                        className={`w-full px-4 py-2 rounded-lg font-semibold transition-all cursor-pointer border ${
+                          gameState.settings.teamMode
+                            ? 'bg-indigo-500 border-indigo-500 text-white'
+                            : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50'
+                        }`}
+                      >
+                        {gameState.settings.teamMode ? t('team.teamModeOn') : t('team.teamModeOff')}
+                      </button>
+                    ) : (
+                      <div className="w-full px-4 py-2 rounded-lg bg-gray-200 dark:bg-gray-600 text-gray-900 dark:text-white font-medium">
+                        {gameState.settings.teamMode ? t('team.teamModeOn') : t('team.teamModeOff')}
+                      </div>
+                    )}
+                  </div>
+                  {gameState.settings.teamMode && (
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                        {t('team.teamCount')}
+                      </label>
+                      {isHost ? (
+                        <input
+                          type="number"
+                          min="2"
+                          max="8"
+                          value={gameState.settings.teamCount ?? 2}
+                          onChange={(e) => handleUpdateSettings({ teamCount: parseInt(e.target.value) || 2 })}
+                          className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition-shadow"
+                        />
+                      ) : (
+                        <div className="w-full px-4 py-2 rounded-lg bg-gray-200 dark:bg-gray-600 text-gray-900 dark:text-white font-medium">
+                          {gameState.settings.teamCount ?? 2}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
+
+              {/* Team Selection */}
+              {gameState.settings.teamMode && (
+                <div className="mb-6 bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6 border border-gray-200 dark:border-gray-600">
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
+                    {t('team.selectTeam')}
+                  </h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    {Array.from({ length: gameState.settings.teamCount ?? 2 }, (_, i) => i + 1).map(teamId => {
+                      const color = TEAM_COLORS[(teamId - 1) % TEAM_COLORS.length];
+                      const myTeamId = Array.from(gameState.players.values()).find(p => p.id === getUserId())?.teamId;
+                      const isMyTeam = myTeamId === teamId;
+                      const members = Array.from(gameState.players.values()).filter(p => p.teamId === teamId);
+                      return (
+                        <button
+                          key={teamId}
+                          onClick={() => handleJoinTeam(isMyTeam ? null : teamId)}
+                          className={`p-3 rounded-lg border-2 text-left transition-all cursor-pointer ${
+                            isMyTeam
+                              ? `${color.activeBg} ${color.border}`
+                              : 'border-gray-200 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-400 bg-white dark:bg-gray-800'
+                          }`}
+                        >
+                          <div className={`flex items-center gap-2 font-semibold mb-2 ${
+                            isMyTeam ? color.text : 'text-gray-800 dark:text-white'
+                          }`}>
+                            <span className={`w-3 h-3 rounded-full flex-shrink-0 ${color.dot}`} />
+                            {t('team.teamLabel', { n: teamId })}
+                          </div>
+                          <div className="space-y-0.5 min-h-[1.25rem]">
+                            {members.length === 0 ? (
+                              <span className="text-xs text-gray-400">{t('team.noMembers')}</span>
+                            ) : (
+                              members.map(m => (
+                                <div key={m.id} className="text-xs text-gray-600 dark:text-gray-300 truncate">
+                                  {m.id === getUserId() ? `★ ${m.name}` : m.name}
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               {isHost && (
                 <button
@@ -533,7 +588,7 @@ export function GameRoom() {
                 highlightPlayerId={getUserId()}
                 showStatus={false}
                 compact={true}
-                pendingPlayerIds={gameState.pendingAlienTeleports}
+                teamMode={gameState.settings.teamMode}
               />
             </div>
 
@@ -616,7 +671,7 @@ export function GameRoom() {
                 currentPlayerId={gameState.currentPlayerId}
                 showStatus={false}
                 compact={true}
-                pendingPlayerIds={gameState.pendingAlienTeleports}
+                teamMode={gameState.settings.teamMode}
               />
             </div>
 

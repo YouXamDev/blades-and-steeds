@@ -96,8 +96,6 @@
     "purchaseRight": "购买权（蓝色边框）",
     "allPlayersStatus": "所有玩家状态",
     "central": "中央",
-    "alienPassiveTitle": "🛸 外星人被动触发",
-    "alienPassiveDesc": "本回合所有人已行动完毕。凭借双飞碟的能量，你在延时技能生效前可进行一次免费瞬移！请选择目标：",
     "stayHere": "放弃并留在原地",
     "killRewardTitle": "击杀奖励 🎁",
     "killRewardPrefix": "你击杀了",
@@ -146,7 +144,6 @@
     "bronze_belt": "铜腰带",
     "silver_belt": "银腰带",
     "gold_belt": "金腰带",
-    "ufo": "UFO",
     "fat": "脂肪衣"
   },
   "action": {
@@ -163,7 +160,6 @@
     "detonate_bomb": "引爆炸弹",
     "punch": "拳击",
     "kick": "踢击",
-    "teleport": "瞬移",
     "hug": "抱人移动"
   },
   "log": {
@@ -186,8 +182,6 @@
     "usedPotionToCentral": "使用药水移动到中央",
     "usedPotionToCity": "使用药水移动到 {{city}} 的城池",
     "potionHealed": "药水在 {{location}} 治疗了 {{target}} {{healed}} 点生命值",
-    "teleportedToCentral": "瞬移到中央",
-    "teleportedToCity": "瞬移到 {{city}} 的城池",
     "huggedToCentral": "抱着 {{target}} 移动到中央",
     "huggedToCity": "抱着 {{target}} 移动到 {{city}} 的城池",
     "placedBomb": "在 {{location}} 放置了炸弹",
@@ -208,7 +202,6 @@
     "placeBomb": "在 {{city}} 埋下了一颗炸弹",
     "detonateBombEmpty": "引爆了炸弹，但没有炸到任何人",
     "detonateBombHit": "引爆了炸弹，炸到了: {{victims}}",
-    "teleport": "传送到了 {{city}}",
     "hug": "抱着 {{target}} 一起移动到了 {{city}}"
   },
   "ability": {
@@ -224,7 +217,6 @@
     "needBomb": "需要炸弹",
     "needGlove": "需要拳套",
     "needBelt": "需要腰带",
-    "needUFO": "需要UFO",
     "vampirePassive": "被动：刀攻击回复1HP",
     "noBombsPlaced": "没有已放置的炸弹",
     "hugCost": "消耗1步"
@@ -232,6 +224,15 @@
   "location": {
     "central": "中央",
     "city": "城池"
+  },
+  "team": {
+    "mode": "队伍系统",
+    "teamModeOn": "团队模式",
+    "teamModeOff": "各自为战",
+    "teamCount": "队伍数量",
+    "teamLabel": "队伍 {{n}}",
+    "selectTeam": "选择队伍",
+    "noMembers": "暂无成员"
   },
   "settings": {
     "title": "设置",

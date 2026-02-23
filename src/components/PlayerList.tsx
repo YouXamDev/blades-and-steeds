@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { Clock, Circle, Heart, Footprints, X, Skull } from 'lucide-react';
 import type { Player } from '../types/game';
+import { TEAM_COLORS } from '../utils/teamColors';
 
 interface PlayerListProps {
   players: Player[];
@@ -10,6 +11,7 @@ interface PlayerListProps {
   compact?: boolean;
   onRemovePlayer?: (playerId: string) => void;
   pendingPlayerIds?: string[];
+  teamMode?: boolean;
 }
 
 export function PlayerList({ 
@@ -20,6 +22,7 @@ export function PlayerList({
   compact = false,
   onRemovePlayer,
   pendingPlayerIds,
+  teamMode = false,
 }: PlayerListProps) {
   const { t } = useTranslation();
 
@@ -114,7 +117,13 @@ export function PlayerList({
                 </div>
               </div>
 
-              <p className={`font-semibold ${isDead ? 'text-gray-400 dark:text-gray-500 line-through' : 'text-gray-900 dark:text-white'} ${compact ? 'text-sm' : 'text-base'} truncate w-full`}>
+              <p className={`font-semibold flex items-center justify-center gap-1.5 ${isDead ? 'text-gray-400 dark:text-gray-500 line-through' : 'text-gray-900 dark:text-white'} ${compact ? 'text-sm' : 'text-base'} truncate w-full`}>
+                {teamMode && player.teamId != null && (
+                  <span
+                    className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${TEAM_COLORS[(player.teamId - 1) % TEAM_COLORS.length].dot}`}
+                    title={`Team ${player.teamId}`}
+                  />
+                )}
                 {player.name}
               </p>
 

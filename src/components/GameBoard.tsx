@@ -8,7 +8,6 @@ import {
   Target,
   Rocket,
   Bomb,
-  Navigation,
   Heart
 } from 'lucide-react';
 import { StarMap } from './StarMap';
@@ -71,7 +70,7 @@ export function GameBoard({ currentPlayer, allPlayers, isMyTurn, currentTurnPlay
   }
   const canMove = currentPlayer.stepsRemaining > 0 && !isActionPending;
   const canBuy = currentPlayer.location.type === 'city' && 
-                 currentPlayer.location.cityId === currentPlayer.id && 
+                 currentPlayer.location.cityId === (currentPlayer.initialCity ?? currentPlayer.id) && 
                  currentPlayer.stepsRemaining > 0 &&
                  !isActionPending;
 
@@ -330,7 +329,7 @@ export function GameBoard({ currentPlayer, allPlayers, isMyTurn, currentTurnPlay
               )}
 
               {/* Archer: Shoot Arrow */}
-              {currentPlayer.class === 'archer' && (
+              {(currentPlayer.class === 'archer' || (currentPlayer.class === 'mage' && currentPlayer.inventory.includes('bow'))) && (
                 <div className="space-y-2">
                   <p className="text-xs text-gray-600 dark:text-gray-400">
                     {!currentPlayer.inventory.includes('bow') && t('ability.needBow')}
@@ -355,7 +354,7 @@ export function GameBoard({ currentPlayer, allPlayers, isMyTurn, currentTurnPlay
               )}
 
               {/* Rocketeer: Launch Rocket */}
-              {currentPlayer.class === 'rocketeer' && (
+              {(currentPlayer.class === 'rocketeer' || (currentPlayer.class === 'mage' && currentPlayer.inventory.includes('rocket_launcher'))) && (
                 <div className="space-y-2">
                   <p className="text-xs text-gray-600 dark:text-gray-400">
                     {!currentPlayer.inventory.includes('rocket_launcher') && t('ability.needLauncher')}
@@ -413,7 +412,7 @@ export function GameBoard({ currentPlayer, allPlayers, isMyTurn, currentTurnPlay
               )}
 
               {/* Boxer: Punch */}
-              {currentPlayer.class === 'boxer' && (
+              {(currentPlayer.class === 'boxer' || (currentPlayer.class === 'mage' && currentPlayer.inventory.some(i => ['bronze_glove', 'silver_glove', 'gold_glove'].includes(i)))) && (
                 <div className="space-y-4">
                   <p className="text-xs text-gray-600 dark:text-gray-400">
                     {currentPlayer.inventory.filter(i => ['bronze_glove', 'silver_glove', 'gold_glove'].includes(i)).length === 0 && t('ability.needGlove')}
@@ -443,7 +442,7 @@ export function GameBoard({ currentPlayer, allPlayers, isMyTurn, currentTurnPlay
               )}
 
               {/* Monk: Kick */}
-              {currentPlayer.class === 'monk' && (
+              {(currentPlayer.class === 'monk' || (currentPlayer.class === 'mage' && currentPlayer.inventory.some(i => ['bronze_belt', 'silver_belt', 'gold_belt'].includes(i)))) && (
                 <div className="space-y-4">
                   <p className="text-xs text-gray-600 dark:text-gray-400">
                     {currentPlayer.inventory.filter(i => ['bronze_belt', 'silver_belt', 'gold_belt'].includes(i)).length === 0 && t('ability.needBelt')}
@@ -472,35 +471,6 @@ export function GameBoard({ currentPlayer, allPlayers, isMyTurn, currentTurnPlay
                       </div>
                     );
                   })}
-                </div>
-              )}
-
-              {/* Alien: Teleport */}
-              {currentPlayer.class === 'alien' && (
-                <div className="space-y-2">
-                  <p className="text-xs text-gray-600 dark:text-gray-400">
-                    {!currentPlayer.inventory.includes('ufo') && t('ability.needUFO')}
-                  </p>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      onClick={() => onAction({ type: 'teleport', targetLocation: { type: 'central' } })}
-                      disabled={!canMove || !currentPlayer.inventory.includes('ufo')}
-                      className="py-2 px-3 rounded bg-cyan-500 hover:bg-cyan-600 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white text-sm font-semibold cursor-pointer disabled:cursor-not-allowed"
-                    >
-                      <Navigation className="w-4 h-4 inline mr-1" />
-                      {t('ability.toBeCentral')}
-                    </button>
-                    {allPlayers.map((p) => (
-                      <button
-                        key={p.id}
-                        onClick={() => onAction({ type: 'teleport', targetLocation: { type: 'city', cityId: p.id } })}
-                        disabled={!canMove || !currentPlayer.inventory.includes('ufo')}
-                        className="py-2 px-3 rounded bg-cyan-500 hover:bg-cyan-600 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white text-sm font-semibold truncate cursor-pointer disabled:cursor-not-allowed"
-                      >
-                        {p.name}
-                      </button>
-                    ))}
-                  </div>
                 </div>
               )}
 
